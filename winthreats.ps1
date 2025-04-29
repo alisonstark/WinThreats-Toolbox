@@ -1,5 +1,5 @@
 # PowerShell Toolbox - ETW Log Analyzer
-# Author: Alison Caique
+# Author: moonpie (aka Alison Caique)
 # Date: April 28, 2025
 
 # ===============================
