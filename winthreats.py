@@ -112,15 +112,6 @@ def Evtx_to_CSV(evtx_path, csv_path):
     return all_rows
 
 
-
-
-# Assuming all_rows is returned from Evtx_to_CSV function
-# for row in all_rows:
-#    rule_name = row["RuleName"]  # Access by field name
-#    print(rule_name)
-
-
-
 def detect_DLLHijack():
     evtx_path = get_evtx_path()
     csv_path = evtx_path.replace(".evtx", ".csv")
