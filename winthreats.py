@@ -75,21 +75,24 @@ def Evtx_to_CSV(evtx_path, csv_path):
             try:
                 xml_str = record.xml()
                 root = ET.fromstring(xml_str)
-                # print(ET.tostring(root, encoding='unicode', method='xml'))  # DEBUG ----------------------------->
+                # print(ET.tostring(root, encoding='unicode', method='xml'))  # DEBUG -----------------------------> OK
 
                 # Namespace-aware parsing
                 ns = {"ns0": "http://schemas.microsoft.com/win/2004/08/events/event"}
 
                 row_dict = {key: "" for key in event_data_fields}  # default empty values
 
-                
+                # DEBUG -----------------------------> OK 
+
                 # Extract <Data Name="...">value</Data> using namespace
-                for data in root.findall(".//ns0:Data Name", ns):
+                for data in root.findall(".//ns0:Data", ns): # DEBUG -----------------------------> OK
+                    
                 # for data in root.findall("./EventData/Data"):
                     
-                    name = data.attrib.get("Data Name")
+                    name = data.attrib.get("Name")
                     value = data.text or ""
-                    print(name)
+                    print(name) # DEBUG -----------------------------> OK
+                    print(value) # DEBUG -----------------------------> OK
 
                     if name in row_dict:
                         row_dict[name] = value
@@ -126,7 +129,7 @@ def detect_DLLHijack():
     csv_data = Evtx_to_CSV(evtx_path, csv_path)
 
     # for row in csv_data:
-        # print(row)
+    #     print(row) # DEBUG ----------------------------->
 
         # Placeholder: Add detection logic for DLL hijacking
         # Example: Check if the loaded image is in the array of target DLLs
