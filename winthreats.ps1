@@ -53,6 +53,7 @@ function Detect-DLLHijack {
 
     # Process the events
     Get-WinEvent -FilterHashtable $Filter | Where-Object {
+        # Create a variable to store Properties 4 and 5 (Null object pointer exception)
         ($_.Properties[4].Value -like "*.exe") -and (
             $TargetDLLs | ForEach-Object { 
                 $_DLL = $_.ToLower()
