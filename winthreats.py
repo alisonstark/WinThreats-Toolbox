@@ -75,24 +75,27 @@ def Evtx_to_CSV(evtx_path, csv_path):
             try:
                 xml_str = record.xml()
                 root = ET.fromstring(xml_str)
+                # print(ET.tostring(root, encoding='unicode', method='xml'))  # DEBUG ----------------------------->
 
                 # Namespace-aware parsing
-                # ns = {"ns": "http://schemas.microsoft.com/win/2004/08/events/event"}
+                ns = {"ns0": "http://schemas.microsoft.com/win/2004/08/events/event"}
 
                 row_dict = {key: "" for key in event_data_fields}  # default empty values
 
                 
                 # Extract <Data Name="...">value</Data> using namespace
-                for data in root.findall("./EventData/Data"):
+                for data in root.findall(".//ns0:Data Name", ns):
+                # for data in root.findall("./EventData/Data"):
                     
-                    name = data.attrib.get("Name")
+                    name = data.attrib.get("Data Name")
                     value = data.text or ""
                     print(name)
+
                     if name in row_dict:
-                        
                         row_dict[name] = value
 
                 all_rows.append(row_dict)
+
             except Exception as e:
                 print(f"Error processing record: {e}")
                 print(f"Record XML: {record.xml()}")
@@ -114,6 +117,7 @@ def Evtx_to_CSV(evtx_path, csv_path):
 #    print(rule_name)
 
 
+
 def detect_DLLHijack():
     evtx_path = get_evtx_path()
     csv_path = evtx_path.replace(".evtx", ".csv")
@@ -121,25 +125,27 @@ def detect_DLLHijack():
     # Placeholder: TODO Add detection logic for DLL hijacking here
     csv_data = Evtx_to_CSV(evtx_path, csv_path)
 
-    for row in csv_data:
+    # for row in csv_data:
+        # print(row)
+
         # Placeholder: Add detection logic for DLL hijacking
         # Example: Check if the loaded image is in the array of target DLLs
-        try:
-            if row["Image"].endswith(".exe") and row["ImageLoaded"]:
-                dll_name = os.path.basename(row["ImageLoaded"]).lower()
-                if dll_name in [dll.lower() for dll in hijackable_arrays]:
-                    
-                    print(f"######### Potential DLL Hijack detected using executable: {row['Image']} #########")
-                    print("Full row data:")
-                    print(row)
-                    print(10*'#' + "Analysis complete. Results saved to:", csv_path)
+        # try:
+        #    if row["Image"].endswith(".exe") and row["ImageLoaded"]:
+        #        dll_name = os.path.basename(row["ImageLoaded"]).lower()
+        #        if dll_name in [dll.lower() for dll in hijackable_arrays]:
+        #            
+        #            print(f"######### Potential DLL Hijack detected using executable: {row['Image']} #########")
+        #            print("Full row data:")
+        #            print(row)
+        #            print(10*'#' + "Analysis complete. Results saved to:", csv_path)
    
-        except KeyError:
-            print("KeyError: 'Image' not found in row data.")
-            continue
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            continue
+        #except KeyError:
+        #    print("KeyError: 'Image' not found in row data.")
+        #    continue
+        #except Exception as e:
+        #    print(f"An error occurred: {e}")
+        #    continue
     
 
 
