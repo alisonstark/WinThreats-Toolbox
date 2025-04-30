@@ -10,10 +10,11 @@
 from Evtx.Evtx import Evtx
 import xml.etree.ElementTree as ET
 import csv
+import os
 
 # Placeholder: Add target DLLs here for DLL hijacking detection
 
-array = ["wininet.dll"]
+hijackable_arrays = ["wininet.dll"]
 
 # ===============================
 # Functions
@@ -32,7 +33,11 @@ def show_menu():
             if choice in [1, 2, 3]:
                 return choice
             else:
+                # In case user enters a number outside the range
+                # This will be handled in the main loop
                 print("Invalid choice. Please select a valid option (1-3).")
+        
+        # In case user enters a non-integer value
         except ValueError:
             print("Invalid input. Please enter a number between 1 and 3.")
 
@@ -53,8 +58,7 @@ def get_evtx_path():
 
 
 def Evtx_to_CSV(evtx_path, csv_path):
-    
-    # Define the event data header fields to extract for the XML
+
     event_data_fields = [
         "RuleName", "UtcTime", "ProcessGuid", "ProcessId", "Image", "ImageLoaded",
         "Hashes", "Signed", "Signature", "SignatureStatus", "SourceProcessGuid", "SourceProcessId",
@@ -64,39 +68,79 @@ def Evtx_to_CSV(evtx_path, csv_path):
 
     all_rows = []
 
-    with Evtx(evtx_path) as log:
+    with Evtx(str(evtx_path)) as log:
+        # print(log.records())
         for record in log.records():
-            xml_str = record.xml()
-            root = ET.fromstring(xml_str)
+            
+            try:
+                xml_str = record.xml()
+                root = ET.fromstring(xml_str)
 
-            data_fields = root.findall("./EventData/Data")
-            data_values = [data.text if data.text is not None else "" for data in data_fields]
-            # Pad the list to always have 23 values
-            data_values += [""] * (len(event_data_fields) - len(data_values))
-            all_rows.append(data_values[:23])  # ensure exactly 23
+                # Namespace-aware parsing
+                # ns = {"ns": "http://schemas.microsoft.com/win/2004/08/events/event"}
+
+                row_dict = {key: "" for key in event_data_fields}  # default empty values
+
+                
+                # Extract <Data Name="...">value</Data> using namespace
+                for data in root.findall("./EventData/Data"):
+                    
+                    name = data.attrib.get("Name")
+                    value = data.text or ""
+                    print(name)
+                    if name in row_dict:
+                        
+                        row_dict[name] = value
+
+                all_rows.append(row_dict)
+            except Exception as e:
+                print(f"Error processing record: {e}")
+                print(f"Record XML: {record.xml()}")
 
     # Save to CSV
     with open(csv_path, mode='w', newline='', encoding='utf-8') as f:
-        writer = csv.writer(f)
-        writer.writerow(event_data_fields)
+        writer = csv.DictWriter(f, fieldnames=event_data_fields)
+        writer.writeheader()
         writer.writerows(all_rows)
 
     return all_rows
+
+
+
+
+# Assuming all_rows is returned from Evtx_to_CSV function
+# for row in all_rows:
+#    rule_name = row["RuleName"]  # Access by field name
+#    print(rule_name)
 
 
 def detect_DLLHijack():
     evtx_path = get_evtx_path()
     csv_path = evtx_path.replace(".evtx", ".csv")
     
-    # Convert the .evtx file to .csv
-    all_rows = Evtx_to_CSV(evtx_path, csv_path)
-    
     # Placeholder: TODO Add detection logic for DLL hijacking here
-    print("DLL Hijacking detection logic goes here.")
-    
-    # Placeholder: Print the results
-    print("Detection complete. Results saved to:", csv_path)
+    csv_data = Evtx_to_CSV(evtx_path, csv_path)
 
+    for row in csv_data:
+        # Placeholder: Add detection logic for DLL hijacking
+        # Example: Check if the loaded image is in the array of target DLLs
+        try:
+            if row["Image"].endswith(".exe") and row["ImageLoaded"]:
+                dll_name = os.path.basename(row["ImageLoaded"]).lower()
+                if dll_name in [dll.lower() for dll in hijackable_arrays]:
+                    
+                    print(f"######### Potential DLL Hijack detected using executable: {row['Image']} #########")
+                    print("Full row data:")
+                    print(row)
+                    print(10*'#' + "Analysis complete. Results saved to:", csv_path)
+   
+        except KeyError:
+            print("KeyError: 'Image' not found in row data.")
+            continue
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            continue
+    
 
 
 # ===============================
@@ -104,11 +148,9 @@ def detect_DLLHijack():
 # ===============================
 
 while True:
-    show_menu
-    selection = input("Please enter the number of your choice")
-
+    selection  = show_menu()
     options = {
-        "1": detect_DLLHijack, 
+        "1": detect_DLLHijack(), 
         #"2": detect_UnmanagedPowerShell,
         #"3": detect_CSharpInjection,
         #"4": exit
