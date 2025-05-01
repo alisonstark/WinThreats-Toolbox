@@ -8,6 +8,7 @@
 
 # Python imports
 from Evtx.Evtx import Evtx
+from pprint import pprint
 import xml.etree.ElementTree as ET
 import csv
 import os
@@ -60,11 +61,11 @@ def get_evtx_path():
 #    return [event for event in events if event.get("EventID") in map(str, allowed_ids)]
 
 # USAGE
-# all_events = Evtx_to_CSV("path/to/log.evtx", "csv/path.csv")
+# all_events = evtx_parser("path/to/log.evtx", "csv/path.csv")
 # filtered_events = filter_events_by_id(all_events, [13])
 
 
-def Evtx_to_CSV(evtx_path, csv_path):
+def evtx_parser(evtx_path, csv_path):
 
     event_data_fields = [
         "EventID", "RuleName", "UtcTime", "ProcessGuid", "ProcessId", "Image", "ImageLoaded",
@@ -129,31 +130,37 @@ def detect_DLLHijack():
     csv_path = evtx_path.replace(".evtx", ".csv")
     
     # Placeholder: TODO Add detection logic for DLL hijacking here
-    data_rows = Evtx_to_CSV(evtx_path, csv_path)
+    data_rows = evtx_parser(evtx_path, csv_path)
 
     # data_rows = [row_dict_1, row_dict_2, row_dict_3, ...], where each dict is an event
-    for data in data_rows:
-        for key, value in data.items():
-            print(f"{key}: {value}") # DEBUG -------------------------->
+    # for data in data_rows:
+    #    for key, value in data.items():
+    #        print(f"{key}: {value}") # DEBUG 
 
-        # Placeholder: Add detection logic for DLL hijacking
-        # Example: Check if the loaded image is in the array of target DLLs
-        # try:
-        #    if row["Image"].endswith(".exe") and row["ImageLoaded"]:
-        #        dll_name = os.path.basename(row["ImageLoaded"]).lower()
-        #        if dll_name in [dll.lower() for dll in hijackable_arrays]:
-        #            
-        #            print(f"######### Potential DLL Hijack detected using executable: {row['Image']} #########")
-        #            print("Full row data:")
-        #            print(row)
-        #            print(10*'#' + "Analysis complete. Results saved to:", csv_path)
-   
-        #except KeyError:
-        #    print("KeyError: 'Image' not found in row data.")
-        #    continue
-        #except Exception as e:
-        #    print(f"An error occurred: {e}")
-        #    continue
+    # Placeholder: Add detection logic for DLL hijacking
+    # Example: Check if the loaded image is in the array of target DLLs
+    for row in data_rows:
+        try:
+            if row["Image"].endswith(".exe") and row["ImageLoaded"]:
+                # Check if the loaded image is a DLL
+                dll_name = os.path.basename(row["ImageLoaded"]).split("\\")[-1].lower() # Get the last part of the path
+                # Check if the loaded DLL is in the hijackable array
+                if dll_name in [dll.lower() for dll in hijackable_arrays]:
+                    
+                    print(f"########################### Potential DLL Hijack detected using executable: {row['Image']}" + 3*"#########")
+                    print("Full row data:\n")
+                    pprint(row)
+                    
+                    print("\n\n\n\n")
+
+        except KeyError:
+            print("KeyError: 'Image' not found in row data.")
+            continue
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            continue
+    
+    print(10*'=' + " Analysis complete. Results saved to: ", csv_path + 10*'=')
     
 
 
