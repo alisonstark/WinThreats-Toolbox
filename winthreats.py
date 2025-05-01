@@ -56,11 +56,18 @@ def get_evtx_path():
     
     return evtx_path
 
+# def filter_events_by_id(events, allowed_ids):
+#    return [event for event in events if event.get("EventID") in map(str, allowed_ids)]
+
+# USAGE
+# all_events = Evtx_to_CSV("path/to/log.evtx", "csv/path.csv")
+# filtered_events = filter_events_by_id(all_events, [13])
+
 
 def Evtx_to_CSV(evtx_path, csv_path):
 
     event_data_fields = [
-        "RuleName", "UtcTime", "ProcessGuid", "ProcessId", "Image", "ImageLoaded",
+        "EventID", "RuleName", "UtcTime", "ProcessGuid", "ProcessId", "Image", "ImageLoaded",
         "Hashes", "Signed", "Signature", "SignatureStatus", "SourceProcessGuid", "SourceProcessId",
         "SourceImage", "TargetProcessGuid", "TargetProcessId", "TargetImage", "CallTrace",
         "User", "LogonGuid", "LogonId", "TerminalSessionId", "IntegrityLevel", "ParentUser"
@@ -75,24 +82,25 @@ def Evtx_to_CSV(evtx_path, csv_path):
             try:
                 xml_str = record.xml()
                 root = ET.fromstring(xml_str)
-                # print(ET.tostring(root, encoding='unicode', method='xml'))  # DEBUG -----------------------------> OK
+                # print(ET.tostring(root, encoding='unicode', method='xml'))  # DEBUG
 
                 # Namespace-aware parsing
                 ns = {"ns0": "http://schemas.microsoft.com/win/2004/08/events/event"}
 
                 row_dict = {key: "" for key in event_data_fields}  # default empty values
 
-                # DEBUG -----------------------------> OK 
+                # Get Event ID from <System>/<EventID>
+                event_id = root.find("./ns0:System/ns0:EventID", ns)
+                if event_id is not None:
+                    row_dict["EventID"] = event_id.text # DEBUG -----------------------------> 
 
                 # Extract <Data Name="...">value</Data> using namespace
                 for data in root.findall(".//ns0:Data", ns): # DEBUG -----------------------------> OK
                     
-                # for data in root.findall("./EventData/Data"):
-                    
                     name = data.attrib.get("Name")
                     value = data.text or ""
-                    print(name) # DEBUG -----------------------------> OK
-                    print(value) # DEBUG -----------------------------> OK
+                    print(name + "##########" + value) # DEBUG ----------------------------->
+                    # print(value) # DEBUG
 
                     if name in row_dict:
                         row_dict[name] = value
