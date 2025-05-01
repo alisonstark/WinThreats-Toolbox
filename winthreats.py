@@ -147,11 +147,11 @@ def detect_DLLHijack():
                 # Check if the loaded DLL is in the hijackable array
                 if dll_name in [dll.lower() for dll in hijackable_arrays]:
                     
-                    print(f"########################### Potential DLL Hijack detected using executable: {row['Image']}" + 3*"#########")
-                    print("Full row data:\n")
+                    print(f"########################### Potential DLL Hijack detected "+ 3*"#########")
+                    print(f"Executable: {row['Image']}" + "\nFull row data:\n")
                     pprint(row)
                     
-                    print("\n\n\n\n")
+                    print("\n\n")
 
         except KeyError:
             print("KeyError: 'Image' not found in row data.")
@@ -161,6 +161,7 @@ def detect_DLLHijack():
             continue
     
     print(10*'=' + " Analysis complete. Results saved to: ", csv_path + 10*'=')
+    print("\n\n")
     
 
 
