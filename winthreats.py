@@ -76,40 +76,50 @@ def Evtx_to_CSV(evtx_path, csv_path):
     all_rows = []
 
     with Evtx(str(evtx_path)) as log:
-        # print(log.records())
         for record in log.records():
             
             try:
                 xml_str = record.xml()
                 root = ET.fromstring(xml_str)
-                # print(ET.tostring(root, encoding='unicode', method='xml'))  # DEBUG
+                print(ET.tostring(root, encoding='unicode', method='xml'))  # DEBUG ------------------>
 
                 # Namespace-aware parsing
                 ns = {"ns0": "http://schemas.microsoft.com/win/2004/08/events/event"}
 
                 row_dict = {key: "" for key in event_data_fields}  # default empty values
 
+                
+                # event_id = root.find("./ns0:System/ns0:EventID", ns)
+                # if event_id is not None:
+                #    row_dict["EventID"] = event_id.text 
+
+                # ACTUAL xml: <ns0:EventID Qualifiers="">10</ns0:EventID>
                 # Get Event ID from <System>/<EventID>
-                event_id = root.find("./ns0:System/ns0:EventID", ns)
-                if event_id is not None:
-                    row_dict["EventID"] = event_id.text # DEBUG -----------------------------> 
+                for data in root.find("./ns0:System/ns0:EventID", ns):
+                    if data is not None:
+                        row_dict["EventID"] = data.text # DEBUG -----------------------------> NOT OK
 
                 # Extract <Data Name="...">value</Data> using namespace
-                for data in root.findall(".//ns0:Data", ns): # DEBUG -----------------------------> OK
+                for data in root.findall(".//ns0:Data", ns): # DEBUG
                     
                     name = data.attrib.get("Name")
                     value = data.text or ""
-                    print(name + "##########" + value) # DEBUG ----------------------------->
-                    # print(value) # DEBUG
+                    # print(name + "##########" + value) # DEBUG
 
                     if name in row_dict:
                         row_dict[name] = value
+                        # print(name + "##########" + row_dict[name]) # DEBUG
 
                 all_rows.append(row_dict)
 
             except Exception as e:
                 print(f"Error processing record: {e}")
                 print(f"Record XML: {record.xml()}")
+
+    # all_rows = [row_dict_1, row_dict_2, row_dict_3, ...]
+    # for row in all_rows:
+    #    print(row) # DEBUG ----------------------------->
+
 
     # Save to CSV
     with open(csv_path, mode='w', newline='', encoding='utf-8') as f:
