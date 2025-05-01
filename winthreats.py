@@ -81,34 +81,29 @@ def Evtx_to_CSV(evtx_path, csv_path):
             try:
                 xml_str = record.xml()
                 root = ET.fromstring(xml_str)
-                print(ET.tostring(root, encoding='unicode', method='xml'))  # DEBUG ------------------>
+                # print(ET.tostring(root, encoding='unicode', method='xml'))  # DEBUG XML format
 
                 # Namespace-aware parsing
                 ns = {"ns0": "http://schemas.microsoft.com/win/2004/08/events/event"}
 
                 row_dict = {key: "" for key in event_data_fields}  # default empty values
 
-                
-                # event_id = root.find("./ns0:System/ns0:EventID", ns)
-                # if event_id is not None:
-                #    row_dict["EventID"] = event_id.text 
+                # ACTUAL xml format: <ns0:EventID Qualifiers="">10</ns0:EventID>
+                # Extract using namespace
+                event_id_elem = root.find(".//ns0:EventID", ns)
+                if event_id_elem is not None and event_id_elem.text:
+                    row_dict["EventID"] = event_id_elem.text
 
-                # ACTUAL xml: <ns0:EventID Qualifiers="">10</ns0:EventID>
-                # Get Event ID from <System>/<EventID>
-                for data in root.find("./ns0:System/ns0:EventID", ns):
-                    if data is not None:
-                        row_dict["EventID"] = data.text # DEBUG -----------------------------> NOT OK
-
-                # Extract <Data Name="...">value</Data> using namespace
+                # ACTUAL xml format: <ns0:EventData><ns0:Data Name="RuleName">-</ns0:Data>
+                # Extract using namespace
                 for data in root.findall(".//ns0:Data", ns): # DEBUG
                     
                     name = data.attrib.get("Name")
                     value = data.text or ""
-                    # print(name + "##########" + value) # DEBUG
+                    # print(name + "##########" + value) # DEBUG data names from event_data_fields and their value
 
                     if name in row_dict:
                         row_dict[name] = value
-                        # print(name + "##########" + row_dict[name]) # DEBUG
 
                 all_rows.append(row_dict)
 
@@ -116,9 +111,8 @@ def Evtx_to_CSV(evtx_path, csv_path):
                 print(f"Error processing record: {e}")
                 print(f"Record XML: {record.xml()}")
 
-    # all_rows = [row_dict_1, row_dict_2, row_dict_3, ...]
     # for row in all_rows:
-    #    print(row) # DEBUG ----------------------------->
+    #    print(row) # DEBUG all rows, where all_rows = [row_dict_1, row_dict_2, row_dict_3, ...]
 
 
     # Save to CSV
@@ -135,10 +129,12 @@ def detect_DLLHijack():
     csv_path = evtx_path.replace(".evtx", ".csv")
     
     # Placeholder: TODO Add detection logic for DLL hijacking here
-    csv_data = Evtx_to_CSV(evtx_path, csv_path)
+    data_rows = Evtx_to_CSV(evtx_path, csv_path)
 
-    # for row in csv_data:
-    #     print(row) # DEBUG ----------------------------->
+    # data_rows = [row_dict_1, row_dict_2, row_dict_3, ...], where each dict is an event
+    for data in data_rows:
+        for key, value in data.items():
+            print(f"{key}: {value}") # DEBUG -------------------------->
 
         # Placeholder: Add detection logic for DLL hijacking
         # Example: Check if the loaded image is in the array of target DLLs
