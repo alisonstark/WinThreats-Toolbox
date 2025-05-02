@@ -26,25 +26,25 @@ def show_menu():
     print("1) DLL Hijacking Detection")
     print("2) Unmanaged PowerShell Detection (Coming Soon)")
     print("3) C# Injection Detection (Coming Soon)")
-    print("3) Exit")
+    print("4) Exit")
     
     while True:
         try:
-            choice = int(input("Select an option (1-3): "))
-            if choice in [1, 2, 3]:
+            choice = int(input("Select an option (1-4): "))
+            if choice in [1, 2, 3, 4]:
                 return choice
             else:
                 # In case user enters a number outside the range
                 # This will be handled in the main loop
-                print("Invalid choice. Please select a valid option (1-3).")
+                print("Invalid choice. Please select a valid option (1-4).")
         
         # In case user enters a non-integer value
         except ValueError:
-            print("Invalid input. Please enter a number between 1 and 3.")
+            print("Invalid input. Please enter a number between 1 and 4.")
 
 
 def get_evtx_path():
-    evtx_path = input("Enter the full path to the .evtx file:")
+    evtx_path = input("Enter the full path to the .evtx file: ")
     
     if not evtx_path:
         print("No path provided. Exiting.")
@@ -129,20 +129,15 @@ def detect_DLLHijack():
     evtx_path = get_evtx_path()
     csv_path = evtx_path.replace(".evtx", ".csv")
     
-    # Placeholder: TODO Add detection logic for DLL hijacking here
     data_rows = evtx_parser(evtx_path, csv_path)
 
-    # data_rows = [row_dict_1, row_dict_2, row_dict_3, ...], where each dict is an event
-    # for data in data_rows:
-    #    for key, value in data.items():
-    #        print(f"{key}: {value}") # DEBUG 
-
-    # Placeholder: Add detection logic for DLL hijacking
     # Example: Check if the loaded image is in the array of target DLLs
     for row in data_rows:
-        assert(int(row["EventID"]) == 7) # DEBUG ------------------>
+        # Check if the row contains the necessary keys
+        # and if the EventID is '7' (DLL loaded) and the Image ends with ".exe"
+        # and if the ImageLoaded is not empty
         try:
-            if row["Image"].endswith(".exe") and row["ImageLoaded"]:
+            if row["EventID"] == '7' and row["Image"].endswith(".exe") and row["ImageLoaded"]:
                 # Check if the loaded image is a DLL
                 dll_name = os.path.basename(row["ImageLoaded"]).split("\\")[-1].lower() # Get the last part of the path
                 # Check if the loaded DLL is in the hijackable array
@@ -173,12 +168,14 @@ def detect_DLLHijack():
 
 while True:
     selection  = show_menu()
+
     options = {
-        "1": detect_DLLHijack(), 
+        1: detect_DLLHijack, 
         #"2": detect_UnmanagedPowerShell,
         #"3": detect_CSharpInjection,
-        #"4": exit
+        4: exit  # DEBUG ----------------> FIXED
     }
+
     if selection in options:
         options[selection]()
         break
