@@ -140,16 +140,13 @@ def detect_DLLHijack():
     # Placeholder: Add detection logic for DLL hijacking
     # Example: Check if the loaded image is in the array of target DLLs
     for row in data_rows:
+        assert(int(row["EventID"]) == 7) # DEBUG ------------------>
         try:
             if row["Image"].endswith(".exe") and row["ImageLoaded"]:
                 # Check if the loaded image is a DLL
                 dll_name = os.path.basename(row["ImageLoaded"]).split("\\")[-1].lower() # Get the last part of the path
                 # Check if the loaded DLL is in the hijackable array
                 if dll_name in [dll.lower() for dll in hijackable_arrays]:
-
-                    # print("\033[31mThis is red text\033[0m")
-                    # print("\033[32mThis is green text\033[0m")
-                    # print("\033[34mThis is blue text\033[0m")
 
                     print("\n")
                     
@@ -170,7 +167,6 @@ def detect_DLLHijack():
     print("\n\n")
     
 
-
 # ===============================
 # Main Program Loop
 # ===============================
@@ -186,7 +182,4 @@ while True:
     if selection in options:
         options[selection]()
         break
-    
-    else:
-        print("Invalid selection. Please try again.")
     
