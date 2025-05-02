@@ -44,7 +44,7 @@ function Detect-DLLHijack {
 
     # FilterHashtable settings
     $Filter = @{
-        LogName = 'Microsoft-Windows-Sysmon'
+        LogName = 'Microsoft-Windows-Sysmon/Operational'
         Path    = $EvtxPath
         ID      = 7
     }
@@ -54,10 +54,12 @@ function Detect-DLLHijack {
     # Process the events
     Get-WinEvent -FilterHashtable $Filter | Where-Object {
         # Create a variable to store Properties 4 and 5 (Null object pointer exception)
-        ($_.Properties[4].Value -like "*.exe") -and (
+        $_Image = $_.Properties[4].Value
+        $_ImageLoaded = $_.Properties[5].Value
+        ($_Image -like "*.exe") -and (
             $TargetDLLs | ForEach-Object { 
                 $_DLL = $_.ToLower()
-                $_CurrentLoadedDLL = $_.Properties[5].Value.ToLower()
+                $_CurrentLoadedDLL = $_ImageLoaded.ToLower()
                 if ($_CurrentLoadedDLL -like "*$_DLL*") {
                     return $true
                 }

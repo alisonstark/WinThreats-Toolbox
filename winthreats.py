@@ -146,12 +146,18 @@ def detect_DLLHijack():
                 dll_name = os.path.basename(row["ImageLoaded"]).split("\\")[-1].lower() # Get the last part of the path
                 # Check if the loaded DLL is in the hijackable array
                 if dll_name in [dll.lower() for dll in hijackable_arrays]:
+
+                    # print("\033[31mThis is red text\033[0m")
+                    # print("\033[32mThis is green text\033[0m")
+                    # print("\033[34mThis is blue text\033[0m")
+
+                    print("\n")
                     
-                    print(f"########################### Potential DLL Hijack detected "+ 3*"#########")
-                    print(f"Executable: {row['Image']}" + "\nFull row data:\n")
+                    print("\033[33m[+] Potential DLL Hijack detected\033[0m")
+                    print(f"Executable: {row['Image']}" + "\n" + "\033[32mEvent Time:\033[0m " + f"{row['UtcTime']}" + "\n")
                     pprint(row)
                     
-                    print("\n\n")
+                    print("\n")
 
         except KeyError:
             print("KeyError: 'Image' not found in row data.")
