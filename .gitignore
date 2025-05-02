@@ -1,1 +1,6 @@
 GitProjects.code-workspace
+WinThreats-Toolbox/__pycache__/evtx_converter.cpython-312.pyc
+.gitignore
+WinThreats-Toolbox/__pycache__
+WinThreats-Toolbox/__pycache__/utils.cpython-312.pyc
+WinThreats-Toolbox/__pycache__/scanners.cpython-312.pyc
