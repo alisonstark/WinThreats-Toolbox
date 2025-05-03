@@ -70,7 +70,26 @@ function Detect-DLLHijack {
 
 # Placeholder for future function:
 function Detect-UnmanagedPowerShell {
-    Write-Host "Unmanaged PowerShell detection is under construction." -ForegroundColor Yellow
+    $EvtxPath = Get-EvtxPath
+
+    # Validate that the file exists
+    if (-Not (Test-Path $EvtxPath)) {
+        Write-Host "The file path provided does not exist. Exiting DLL Hijack Detection." -ForegroundColor Red
+        return
+    }
+
+    # FilterHashtable settings
+    $Filter = @{
+        LogName = 'Microsoft-Windows-Sysmon/Operational'
+        Path    = $EvtxPath
+        ID      = 7
+    }
+
+    Get-WinEvent -FilterHashtable $Filter | Where-Object {
+     ($_.Properties[5].Value -like "*clr.dll") -or 
+     ($_.Properties[5].Value -like "*clrjit.dll")
+    } |
+    Format-List TimeCreated, ID, Message
 }
 
 function Detect-CSharpInjection {
