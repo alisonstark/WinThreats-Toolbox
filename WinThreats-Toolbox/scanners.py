@@ -8,12 +8,15 @@
 
 import os
 from evtx_converter import evtx_parser
-from utils import get_evtx_path
-from pprint import pprint
+from utils import get_evtx_path, get_hijackable_dlls, print_event
 
-hijackable_arrays = ["wininet.dll"]
+hijackable_dlls = get_hijackable_dlls()
 
-def detect_DLLHijack():
+def print_hijackable_dlls():
+    for dll in hijackable_dlls:
+        print(dll)
+
+def detect_DLLHijack(target_dll=None):
     evtx_path = get_evtx_path()
     csv_path = evtx_path.replace(".evtx", ".csv")
     
@@ -28,16 +31,14 @@ def detect_DLLHijack():
             if row["EventID"] == '7' and row["Image"].endswith(".exe") and row["ImageLoaded"]:
                 # Check if the loaded image is a DLL
                 dll_name = os.path.basename(row["ImageLoaded"]).split("\\")[-1].lower() # Get the last part of the path
-                # Check if the loaded DLL is in the hijackable array
-                if dll_name in [dll.lower() for dll in hijackable_arrays]:
-
-                    print("\n")
-                    
-                    print("\033[33m[+] Potential DLL Hijack detected\033[0m")
-                    print(f"Executable: {row['Image']}" + "\n" + "\033[32mEvent Time:\033[0m " + f"{row['UtcTime']}" + "\n")
-                    pprint(row)
-                    
-                    print("\n")
+                
+                # Check if the loaded DLL is in the hijackable array or equals the target DLL
+                if target_dll and target_dll.lower() == dll_name:
+                    print_event(row)
+                
+                # If no target DLL is provided, check if the loaded DLL is in the hijackable array
+                elif not target_dll and dll_name in [dll.lower() for dll in hijackable_dlls]:
+                    print_event(row)
 
         except KeyError:
             print("KeyError: 'Image' not found in row data.")
@@ -46,5 +47,5 @@ def detect_DLLHijack():
             print(f"An error occurred: {e}")
             continue
     
-    print(10*'=' + " Analysis complete. Results saved to: ", csv_path + 10*'=')
+    print(10*'=', " Analysis complete. Results saved to: ", csv_path, " ", 10*'=')
     print("\n\n")
