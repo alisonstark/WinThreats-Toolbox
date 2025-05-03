@@ -74,7 +74,7 @@ function Detect-UnmanagedPowerShell {
 
     # Validate that the file exists
     if (-Not (Test-Path $EvtxPath)) {
-        Write-Host "The file path provided does not exist. Exiting DLL Hijack Detection." -ForegroundColor Red
+        Write-Host "The file path provided does not exist. Exiting Unmanaged PowerShell Detection." -ForegroundColor Red
         return
     }
 

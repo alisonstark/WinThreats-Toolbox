@@ -49,3 +49,8 @@ def detect_DLLHijack(target_dll=None):
     
     print(10*'=', " Analysis complete. Results saved to: ", csv_path, " ", 10*'=')
     print("\n\n")
+
+
+def detect_UnmanagedPowerShell():
+    # Placeholder for Unmanaged PowerShell detection logic
+    pass
