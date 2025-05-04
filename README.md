@@ -1,8 +1,8 @@
-# ETW Toolbox: PowerShell Event Log Analyzer
+# ETW Toolbox: Event Log Analyzer
 
 ## Overview
 
-The **ETW Toolbox** is a PowerShell-based tool designed to analyze Windows Event Logs using **Event Tracing for Windows (ETW)**. It provides functionalities to filter, detect, and log various system events, such as **DLL Hijacking**, through customized queries and filters.
+The **ETW Toolbox** is a Python-based tool designed to analyze Windows Event Logs using **Event Tracing for Windows (ETW)**. It provides functionalities to filter, detect, and log various system events, such as **DLL Hijacking**, through customized queries and filters, as well as saving results to a CSV file.
 
 This tool is an essential utility for those working with **Sysmon Logs** and **Windows Event Logs**, particularly for security analysts and anyone interested in **Windows-based security monitoring**.
 
@@ -16,7 +16,7 @@ This tool is an essential utility for those working with **Sysmon Logs** and **W
 
 To use the ETW Toolbox, you must have **PowerShell** installed. If you don't have PowerShell, follow the instructions below:
 
-### 1. Install PowerShell
+### 1. Install Dependencies
 
 - **Ubuntu/Linux**:  
-  sudo snap install powershell --classic
+  sudo apt install python-evtx
