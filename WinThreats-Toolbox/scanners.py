@@ -6,9 +6,9 @@
 # DLL Hijacking Detection, * Program
 # ===============================
 
-import os
-from evtx_converter import evtx_parser
-from utils import get_evtx_path, get_hijackable_dlls, print_event
+import os, csv
+from converters import evtx_parser, evtx_to_csv
+from utils import get_hijackable_dlls, print_event
 
 hijackable_dlls = get_hijackable_dlls()
 
@@ -16,11 +16,12 @@ def print_hijackable_dlls():
     for dll in hijackable_dlls:
         print(dll)
 
-def detect_DLLHijack(target_dll=None):
-    evtx_path = get_evtx_path()
-    csv_path = evtx_path.replace(".evtx", ".csv")
+def detect_DLLHijack(evtx_path, target_dll=None):
+    # evtx_path = get_evtx_path()
     
-    data_rows = evtx_parser(evtx_path, csv_path)
+    
+    data_rows = evtx_parser(evtx_path)
+    spotted_rows = []
 
     # Example: Check if the loaded image is in the array of target DLLs
     for row in data_rows:
@@ -35,10 +36,12 @@ def detect_DLLHijack(target_dll=None):
                 # Check if the loaded DLL is in the hijackable array or equals the target DLL
                 if target_dll and target_dll.lower() == dll_name:
                     print_event(row)
+                    spotted_rows.append(row)
                 
                 # If no target DLL is provided, check if the loaded DLL is in the hijackable array
                 elif not target_dll and dll_name in [dll.lower() for dll in hijackable_dlls]:
                     print_event(row)
+                    spotted_rows.append(row)
 
         except KeyError:
             print("KeyError: 'Image' not found in row data.")
@@ -47,7 +50,15 @@ def detect_DLLHijack(target_dll=None):
             print(f"An error occurred: {e}")
             continue
     
-    print(10*'=', " Analysis complete. Results saved to: ", csv_path, " ", 10*'=')
+    print(10*'=', " Analysis complete", 10*'=', "\nWould you like to save the matched results to a CSV file? Y/N\n")
+    save_results = input("Enter your choice: ").strip().lower()
+    
+    if save_results == 'y':
+        # Save the results to a CSV file
+        evtx_to_csv(spotted_rows, evtx_path)
+        
+    else:
+        print("Results not saved.")
     print("\n\n")
 
 

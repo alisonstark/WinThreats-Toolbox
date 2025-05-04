@@ -8,18 +8,19 @@
 
 # Python imports
 from Evtx.Evtx import Evtx
+from utils import get_evtx_path
 import csv
+
 import xml.etree.ElementTree as ET
 
-
-def evtx_parser(evtx_path, csv_path):
-
-    event_data_fields = [
+event_data_fields = [
         "EventID", "RuleName", "UtcTime", "ProcessGuid", "ProcessId", "Image", "ImageLoaded",
         "Hashes", "Signed", "Signature", "SignatureStatus", "SourceProcessGuid", "SourceProcessId",
         "SourceImage", "TargetProcessGuid", "TargetProcessId", "TargetImage", "CallTrace",
         "User", "LogonGuid", "LogonId", "TerminalSessionId", "IntegrityLevel", "ParentUser"
     ]
+
+def evtx_parser(evtx_path):
 
     all_rows = []
 
@@ -62,11 +63,12 @@ def evtx_parser(evtx_path, csv_path):
     # for row in all_rows:
     #    print(row) # DEBUG all rows, where all_rows = [row_dict_1, row_dict_2, row_dict_3, ...]
 
-
-    # Save to CSV
-    with open(csv_path, mode='w', newline='', encoding='utf-8') as f:
-        writer = csv.DictWriter(f, fieldnames=event_data_fields)
-        writer.writeheader()
-        writer.writerows(all_rows)
-
     return all_rows
+
+def evtx_to_csv(data_rows, evtx_path):
+    csv_path = evtx_path.replace(".evtx", ".csv")
+    with open(csv_path, mode='w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=event_data_fields)
+            writer.writeheader()
+            writer.writerows(data_rows)
+    print(f"CSV file saved to: {csv_path}")

@@ -7,10 +7,11 @@
 # ===============================
 
 from scanners import detect_DLLHijack
-from utils import show_menu
+from utils import show_menu, get_evtx_path
 # from scanners import print_hijackable_dlls  # DEBUG
 
-
+# "C:\\path\\to\\your\\evtx_file.evtx"  Replace with your actual path
+evtx_path = get_evtx_path()
 
 while True:
     # Display the menu and get the user's selection
@@ -25,5 +26,5 @@ while True:
     }
 
     if selection[0] in options:
-        options[selection[0]](selection[1])  # Pass the target_dll if provided
+        options[selection[0]](evtx_path, selection[1])  # Pass the target_dll if provided
         break  # Exit the loop after processing the selection
