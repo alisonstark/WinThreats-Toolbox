@@ -16,11 +16,8 @@ def print_hijackable_dlls():
     for dll in hijackable_dlls:
         print(dll)
 
-def detect_DLLHijack(evtx_path, target_dll=None):
-    # evtx_path = get_evtx_path()
-    
-    
-    data_rows = evtx_parser(evtx_path)
+def detect_DLLHijack(evtx_path, data_rows, target_dll=None):
+
     spotted_rows = []
 
     # Example: Check if the loaded image is in the array of target DLLs
@@ -62,6 +59,43 @@ def detect_DLLHijack(evtx_path, target_dll=None):
     print("\n\n")
 
 
-def detect_UnmanagedPowerShell():
-    # Placeholder for Unmanaged PowerShell detection logic
-    pass
+def detect_UnmanagedPowerShell(evtx_path, data_rows, target_dll=None): # DEBUG ------------------------>
+    
+    spotted_rows = []
+    clr_dlls = ["clr.dll", "clrjit.dll"]
+
+    for row in data_rows:
+        # and if the EventID is '7' (DLL loaded) and the Image ends with ".exe"
+        # and if the ImageLoaded is not empty
+        try:
+            if row["EventID"] == '7' and row["ImageLoaded"]:
+                # Check if the loaded image is a DLL
+                dll_name = os.path.basename(row["ImageLoaded"]).split("\\")[-1].lower() # TODO: is os.path.basename necessary?
+                
+                # If a target DLL is provided, check if it matches the loaded DLL
+                if target_dll and target_dll.lower() == dll_name:
+                    print_event(row)
+                    spotted_rows.append(row)
+                
+                # If no target DLL is provided, check if the loaded DLL is in the clr_dlls array
+                elif not target_dll and dll_name in clr_dlls:
+                    print_event(row)
+                    spotted_rows.append(row)
+
+        except KeyError:
+            print("KeyError: 'ImageLoaded' not found in row data.")
+            continue
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            continue
+    
+    print(10*'=', " Analysis complete", 10*'=', "\nWould you like to save the matched results to a CSV file? Y/N\n")
+    save_results = input("Enter your choice: ").strip().lower()
+    
+    if save_results == 'y':
+        # Save the results to a CSV file
+        evtx_to_csv(spotted_rows, evtx_path)
+        
+    else:
+        print("Results not saved.")
+    print("\n\n")
