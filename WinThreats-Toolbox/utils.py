@@ -12,11 +12,11 @@ from pprint import pprint
 def show_menu():
     print("=== ETW Log Analyzer Toolbox ===")
     print("1) DLL Hijacking Detection")
-    print("2) Unmanaged PowerShell Detection (Coming Soon)")
+    print("2) Unmanaged PowerShell Detection")
     print("3) C# Injection Detection (Coming Soon)")
     print("4) Exit")
     
-    target_dll = None  # Initialize target_dll to None
+    target_dll = None
     # Loop until a valid choice is made
     while True:
         try:
@@ -27,7 +27,7 @@ def show_menu():
                     target_dll = input("Enter the DLL name (e.g., example.dll) or press Enter to skip: ")
                     
                     if target_dll and not target_dll.endswith(".dll"):
-                        target_dll = input("Invalid DLL name. Please include the .dll extension:")
+                        target_dll = input("\033[31m[-] Invalid DLL name. Please include the .dll extension:\033[0m")
 
                     elif target_dll:
                         target_dll = target_dll.strip().lower()
@@ -41,7 +41,7 @@ def show_menu():
             else:
                 # In case user enters a number outside the range
                 # This will be handled in the main loop
-                print("Invalid choice. Please select a valid option (1-4).")
+                print("\033[31m[-] Invalid choice. Please select a valid option (1-4).\033[0m")
         
         # In case user enters a non-integer value
         except ValueError:
@@ -51,8 +51,8 @@ def show_menu():
 # This function is called when a potential DLL hijack is detected
 def print_event(event):
     print("\n")
-    print("\033[33m[+] Potential DLL Hijack detected\033[0m")
-    print(f"Executable: {event['Image']}" + "\n" + "\033[32mEvent Time:\033[0m " + f"{event['UtcTime']}" + "\n")
+    print("\033[36m[+] Potential DLL Hijack detected\033[0m")
+    print(f"Executable: {event['Image']}" + "\n" + "Event Time: " + f"{event['UtcTime']}" + "\n")
     pprint(event)
     print("\n")
 
@@ -61,24 +61,21 @@ def get_evtx_path():
     evtx_path = input("Enter the full path to the .evtx file: ")
     
     if not evtx_path:
-        print("No path provided. Exiting.")
+        print("\033[31m[-] No path provided. Exiting.\033[0m")
         exit(1)
     elif not evtx_path.endswith(".evtx"):
-        print("Invalid file type. Please provide a .evtx file.")
+        print("\033[31m[-] Invalid file type. Please provide a .evtx file.\033[0m")
         exit(1)
     else:
-        print(f"File successfully loaded: {evtx_path}")
+        print(f"[+] File successfully loaded: {evtx_path}")
     
     return evtx_path
-
-# def filter_events_by_id(events, allowed_ids):
-#    return [event for event in events if event.get("EventID") in map(str, allowed_ids)]
 
 # USAGE
 # all_events = evtx_parser("path/to/log.evtx", "csv/path.csv")
 # filtered_events = filter_events_by_id(all_events, [13])
 
-# generate a list of hijackable DLLs from a text file
+# Generate a list of hijackable DLLs from a text file
 # The text file should be in the same directory as this script
 def get_hijackable_dlls():
     hijackable_dlls = set()
@@ -95,8 +92,6 @@ def get_hijackable_dlls():
             elif len(dll_array) == 3 and dll_array[1].endswith(".dll"):
                 dll = dll_array[1].lower()
                 hijackable_dlls.add(dll)
-
-            # no need for 'else: continue' – just skip it
 
     sorted(hijackable_dlls)
     return hijackable_dlls

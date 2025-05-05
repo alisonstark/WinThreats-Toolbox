@@ -16,7 +16,6 @@ evtx_path = get_evtx_path()
 data_rows = evtx_parser(evtx_path)
 
 while True:
-    print("Entered loop")
     # Display the menu and get the user's selection
     # If the user selects option 1, prompt for a specific DLL to check for hijacking
     selection  = show_menu()

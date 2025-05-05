@@ -8,7 +8,6 @@
 
 # Python imports
 from Evtx.Evtx import Evtx
-#from utils import get_evtx_path
 import csv
 
 import xml.etree.ElementTree as ET
