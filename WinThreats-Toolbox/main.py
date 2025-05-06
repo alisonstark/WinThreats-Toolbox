@@ -9,7 +9,7 @@
 from scanners import detect_DLLHijack, detect_UnmanagedPowerShell
 from utils import show_menu, get_evtx_path
 from converters import evtx_parser
-# from scanners import print_hijackable_dlls  # DEBUG
+# from scanners import print_hijackable_dlls, print_lolbins  # DEBUG
 
 # "C:\\path\\to\\your\\evtx_file.evtx"  Replace with your actual path
 evtx_path = get_evtx_path()
@@ -28,5 +28,10 @@ while True:
     }
 
     if selection[0] in options:
-        options[selection[0]](evtx_path, data_rows, selection[1])  # Pass the target_dll if provided
-        break  # Exit the loop after processing the selection
+        if selection[0] == 4:
+            print("\033[32m[+] Exiting the program...\033[0m\n")
+            break
+        
+        else:
+            options[selection[0]](evtx_path, data_rows, selection[1])  # Pass the target_dll if provided
+        # break  # Exit the loop after processing the selection

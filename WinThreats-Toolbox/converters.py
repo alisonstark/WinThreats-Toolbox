@@ -16,7 +16,8 @@ event_data_fields = [
         "EventID", "RuleName", "UtcTime", "ProcessGuid", "ProcessId", "Image", "ImageLoaded",
         "Hashes", "Signed", "Signature", "SignatureStatus", "SourceProcessGuid", "SourceProcessId",
         "SourceImage", "TargetProcessGuid", "TargetProcessId", "TargetImage", "CallTrace",
-        "User", "LogonGuid", "LogonId", "TerminalSessionId", "IntegrityLevel", "ParentUser"
+        "User", "LogonGuid", "LogonId", "TerminalSessionId", "IntegrityLevel", "ParentUser", "SourceIp", 
+        "SourceHostname", "SourcePort", "DestinationIp", "DestinationHostname", "DestinationPort"
     ]
 
 def evtx_parser(evtx_path):

@@ -34,6 +34,19 @@ def show_menu():
                     
                     # If the user provides a DLL name, return it along with the choice
                     return choice, target_dll if target_dll else None
+
+                elif choice == 2:
+                    print("Provide a specific DLL to check for unmanaged powershell code execution (optional).")
+                    target_dll = input("Enter the DLL name (e.g., example.dll) or press Enter to skip: ")
+                    
+                    if target_dll and not target_dll.endswith(".dll"):
+                        target_dll = input("\033[31m[-] Invalid DLL name. Please include the .dll extension:\033[0m")
+
+                    elif target_dll:
+                        target_dll = target_dll.strip().lower()
+                    
+                    # If the user provides a DLL name, return it along with the choice
+                    return choice, target_dll if target_dll else None
                 
                 # If the user selects options 2 or 3, return the choice and None for target_dll
                 return choice, None
@@ -48,11 +61,19 @@ def show_menu():
             print("Invalid input. Please enter a number between 1 and 4.")
 
 # Function to print the event details
-# This function is called when a potential DLL hijack is detected
+# This function is called when a potential malicious activity is detected
 def print_event(event):
-    print("\n")
-    print("\033[36m[+] Potential DLL Hijack detected\033[0m")
-    print(f"Executable: {event['Image']}" + "\n" + "Event Time: " + f"{event['UtcTime']}" + "\n")
+    print("\033[36m[+] Summary of the activity\033[0m")
+    
+    if event['Image'] == "" or event['EventID'] == '8' or event['EventID'] == '10':
+        print(f"Injector process: {event['SourceImage']}" + "\n",
+              f"Injected process: {event['TargetImage']}" + "\n", 
+              f"Event Time: {event['UtcTime']}" + "\n")
+    
+    else:
+        print(f"Initiator process: {event['Image']}" + "\n",
+          f"Event Time: {event['UtcTime']}" + "\n")
+    
     pprint(event)
     print("\n")
 
@@ -95,6 +116,26 @@ def get_hijackable_dlls():
 
     sorted(hijackable_dlls)
     return hijackable_dlls
+
+# Generate a set of common LOLBins from a text file
+def get_lolbins(): # TODO: DEBUG set of lolbins
+    lolbins = set()
+    current_dir = os.path.dirname(__file__)
+    file_path = os.path.join(current_dir, "lolbins.txt")
+    with open(file_path, "r", encoding="utf-8") as f:
+        for line in f:
+            lolbins.add(line.strip().lower())
+
+    sorted_lolbins = sorted(lolbins)
+    return sorted_lolbins
+
+# Check if the image path is a LOLBin
+def is_lolbin(image_path, lolbins):
+    if not image_path:
+        return False
+    binary = os.path.basename(image_path).split("\\")[-1].lower()
+    return bool(binary and lolbins and binary in lolbins)
+
 
 
 
