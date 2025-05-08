@@ -7,26 +7,8 @@
 # ===============================
 
 
-function Get-HijackableDLLs {
-    $hijackable_dlls = @()
-    $current_dir = Split-Path -Parent $MyInvocation.MyCommand.Path
-    $file_path = Join-Path -Path $current_dir -ChildPath "hijackable_dlls.txt"
-    
-    if (Test-Path $file_path) {
-        $lines = Get-Content -Path $file_path
-        foreach ($line in $lines) {
-            $dll_array = $line -split "\t"
-            if ($dll_array.Count -eq 4 -and $dll_array[2].EndsWith(".dll")) {
-                $dll = $dll_array[2].ToLower()
-                $hijackable_dlls += $dll
-            } elseif ($dll_array.Count -eq 3 -and $dll_array[1].EndsWith(".dll")) {
-                $dll = $dll_array[1].ToLower()
-                $hijackable_dlls += $dll
-            }
-        }
-    }
-    return [System.Collections.Generic.HashSet[string]]::new($hijackable_dlls)
-}
+$TargetDLLs = @("wininet.dll", "mswsock.dll", "ws2_32.dll", "wsock32.dll", "wininet.dll", "urlmon.dll", 
+"mshtml.dll", "shdocvw.dll", "actxprxy.dll", "msxml3.dll", "msxml6.dll", "msxml2.dll", "scrrun.dll", "vbscript.dll", "jscript.dll")
 
 # Load the list of hijackable DLLs
 $TargetDLLs = Get-HijackableDLLs
