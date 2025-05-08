@@ -6,11 +6,30 @@
 # Configurations and Arrays
 # ===============================
 
-# Placeholder: Add target DLLs here for DLL hijacking detection
-$TargetDLLs = @(
-    "wininet.dll"
-    # Add more DLLs here
-)
+
+function Get-HijackableDLLs {
+    $hijackable_dlls = @()
+    $current_dir = Split-Path -Parent $MyInvocation.MyCommand.Path
+    $file_path = Join-Path -Path $current_dir -ChildPath "hijackable_dlls.txt"
+    
+    if (Test-Path $file_path) {
+        $lines = Get-Content -Path $file_path
+        foreach ($line in $lines) {
+            $dll_array = $line -split "\t"
+            if ($dll_array.Count -eq 4 -and $dll_array[2].EndsWith(".dll")) {
+                $dll = $dll_array[2].ToLower()
+                $hijackable_dlls += $dll
+            } elseif ($dll_array.Count -eq 3 -and $dll_array[1].EndsWith(".dll")) {
+                $dll = $dll_array[1].ToLower()
+                $hijackable_dlls += $dll
+            }
+        }
+    }
+    return [System.Collections.Generic.HashSet[string]]::new($hijackable_dlls)
+}
+
+# Load the list of hijackable DLLs
+$TargetDLLs = Get-HijackableDLLs
 
 # ===============================
 # Functions
@@ -20,14 +39,25 @@ function Show-Menu {
     Clear-Host
     Write-Host "=== ETW Log Analyzer Toolbox ===" -ForegroundColor Cyan
     Write-Host "1) DLL Hijacking Detection"
-    Write-Host "2) Unmanaged PowerShell Detection (Coming Soon)"
-    Write-Host "3) C# Injection Detection (Coming Soon)"
-    Write-Host "4) Exit"
+    Write-Host "2) Unmanaged PowerShell Detection"
+    Write-Host "3) LSASS Dump Detection"
+    Write-Host "4) Strange Parent-Child Process Detection"
+    Write-Host "5) Process Injection Detection"
+    Write-Host "6) Process Creation Detection"
+    Write-Host "7) Exit"
 }
 
 function Get-EvtxPath {
     param(
         [string]$PromptMessage = "Enter the full path to the .evtx file:"
+    )
+    $evtxPath = Read-Host $PromptMessage
+    return $evtxPath
+}
+
+function Get-SecurityLogsPath {
+    param(
+        [string]$PromptMessage = "Enter the full path to the .evtx of the Security Logs file:"
     )
     $evtxPath = Read-Host $PromptMessage
     return $evtxPath
@@ -92,8 +122,97 @@ function Detect-UnmanagedPowerShell {
     Format-List TimeCreated, ID, Message
 }
 
-function Detect-CSharpInjection {
-    Write-Host "C# Injection detection is under construction." -ForegroundColor Yellow
+function Detect-LSASSDump {
+
+    $EvtxPath = Get-EvtxPath
+
+    # Validate that the file exists
+    if (-Not (Test-Path $EvtxPath)) {
+        Write-Host "The file path provided does not exist. Exiting Unmanaged PowerShell Detection." -ForegroundColor Red
+        return
+    }
+
+    # FilterHashtable settings
+    $Filter = @{
+        LogName = 'Microsoft-Windows-Sysmon/Operational'
+        Path    = $EvtxPath
+        ID      = 7
+    }
+    Get-WinEvent -FilterHashtable $Filter | Where-Object {
+        $_.Properties[8].Value -like "*lsass.exe" -and
+        $_.Properties[9].Value -eq 0x1FFFFF -and
+        $_.Properties[11].Value.ToLower() -notlike $_.Properties[12].Value.ToLower()
+    } | 
+    Format-List TimeCreated, ID, Message
+
+}
+
+function Detect-StrangeParentChild {
+    $EvtxPath = Get-EvtxPath
+
+    # Validate that the file exists
+    if (-Not (Test-Path $EvtxPath)) {
+        Write-Host "The file path provided does not exist. Exiting Strange Parent-Child Process Detection." -ForegroundColor Red
+        return
+    }
+
+    # FilterHashtable settings
+    $Filter = @{
+        LogName = 'Microsoft-Windows-Sysmon/Operational'
+        Path    = $EvtxPath
+        ID      = 1
+    }
+    
+    # TODO: Implement a more comprehensive array of parent processes to check against 
+    Get-WinEvent -FilterHashtable $Filter | Where-Object {
+        $_.Properties[4].Value -like "*powershell.exe" -and
+        $_.Properties[5].Value -like "*cmd.exe"
+    } | 
+    Format-List TimeCreated, ID, Message
+}
+function Detect-ProcessInjection {
+    $EvtxPath = Get-EvtxPath
+
+    # Validate that the file exists
+    if (-Not (Test-Path $EvtxPath)) {
+        Write-Host "The file path provided does not exist. Exiting Process Injection Detection." -ForegroundColor Red
+        return
+    }
+
+    # FilterHashtable settings
+    $Filter = @{
+        LogName = 'Microsoft-Windows-Sysmon/Operational'
+        Path    = $EvtxPath
+        ID      = 8
+    }
+    
+    Get-WinEvent -FilterHashtable $Filter | Where-Object {
+        $_.Properties[4].Value -like "*powershell.exe" -and
+        $_.Properties[5].Value -like "*cmd.exe"
+    } | 
+    Format-List TimeCreated, ID, Message
+}
+function Detect-ProcessCreation {
+    $EvtxPath = Get-EvtxPath
+
+    # Validate that the file exists
+    if (-Not (Test-Path $EvtxPath)) {
+        Write-Host "The file path provided does not exist. Exiting Process Creation Detection." -ForegroundColor Red
+        return
+    }
+
+    # FilterHashtable settings
+    $Filter = @{
+        LogName = 'Microsoft-Windows-Sysmon/Operational'
+        Path    = $EvtxPath
+        ID      = 1
+    }
+    
+    Get-WinEvent -FilterHashtable $Filter | Where-Object {
+        $_.Properties[4].Value -like "*powershell.exe" -and
+        $_.Properties[5].Value -like "*cmd.exe"
+    } | 
+    Format-List TimeCreated, ID, Message
 }
 
 # ===============================
@@ -107,7 +226,7 @@ do {
     switch ($selection) {
         "1" { Detect-DLLHijack }
         "2" { Detect-UnmanagedPowerShell }
-        "3" { Detect-CSharpInjection }
+        "3" { Detect-LSASSDump }
         "4" { Write-Host "Exiting..." -ForegroundColor Green; break }
         default { Write-Host "Invalid selection, please try again." -ForegroundColor Red }
     }

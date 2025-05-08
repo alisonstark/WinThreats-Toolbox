@@ -8,9 +8,9 @@
 # ===============================
 
 import os
-from converters import evtx_to_csv
+from converters import security_evtx_parser, sysmon_evtx_to_csv
 from datetime import datetime, timedelta
-from utils import get_hijackable_dlls, get_lolbins, is_lolbin, print_event
+from utils import get_hijackable_dlls, get_lolbins, is_lolbin, print_sysmon_event, filter_events_by_time
 
 hijackable_dlls = get_hijackable_dlls()
 lolbins = get_lolbins()
@@ -41,12 +41,12 @@ def detect_DLLHijack(evtx_path, data_rows, target_dll=None):
                 
                 # Check if the loaded DLL is in the hijackable array or equals the target DLL
                 if target_dll and target_dll.lower() == dll_name:
-                    print_event(row)
+                    print_sysmon_event(row)
                     spotted_rows.append(row)
                 
                 # If no target DLL is provided, check if the loaded DLL is in the hijackable array
                 elif not target_dll and dll_name in [dll.lower() for dll in hijackable_dlls]:
-                    print_event(row)
+                    print_sysmon_event(row)
                     spotted_rows.append(row)
 
         except KeyError:
@@ -61,13 +61,13 @@ def detect_DLLHijack(evtx_path, data_rows, target_dll=None):
     
     if user_input == 'y':
         # Save the results to a CSV file
-        evtx_to_csv(spotted_rows, evtx_path)
+        sysmon_evtx_to_csv(spotted_rows, evtx_path)
         
     else:
         print("\033[31m[-] Results not saved.\033[0m")
     print("\n\n")
 
-def detect_UnmanagedPowerShell(evtx_path, data_rows, target_dll=None): # DEBUG ------------------------>
+def detect_UnmanagedPowerShell(evtx_path, data_rows, target_dll=None):
     
     spotted_rows = []
     clr_dlls = ["clr.dll", "clrjit.dll"]
@@ -91,7 +91,7 @@ def detect_UnmanagedPowerShell(evtx_path, data_rows, target_dll=None): # DEBUG -
                     
                     # If a target DLL is provided, check if it matches the loaded DLL
                     if target_dll and target_dll.lower() == dll_name:
-                        print_event(row)
+                        print_sysmon_event(row)
                         spotted_rows.append(row)
                         clr_hits.append(row)
                         
@@ -104,7 +104,7 @@ def detect_UnmanagedPowerShell(evtx_path, data_rows, target_dll=None): # DEBUG -
                     
                     # If no target DLL is provided, check if the loaded DLL is in the clr_dlls array
                     elif not target_dll and dll_name in clr_dlls:
-                        print_event(row)
+                        print_sysmon_event(row)
                         spotted_rows.append(row)
                         clr_hits.append(row)
 
@@ -162,14 +162,14 @@ def detect_UnmanagedPowerShell(evtx_path, data_rows, target_dll=None): # DEBUG -
         for event in filtered_events:
             if event["EventID"] == '10' or event["EventID"] == '8':
                 if is_lolbin(event["SourceImage"], lolbins) or is_lolbin(event["TargetImage"], lolbins):
-                    print_event(event)
+                    print_sysmon_event(event)
                     spotted_rows.append(event)
             
             elif event["EventID"] == '3':
                 if is_lolbin(event["Image"], lolbins) and event["DestinationPort"] == "443":
                     print("\033[31m[!] LOLBin made outbound HTTPS connection to: \033[0m", 
                           f"{event['DestinationIp']}:{event['DestinationPort']} (Event ID 3):")
-                    print_event(event)
+                    print_sysmon_event(event)
                     spotted_rows.append(event)
 
         print("\033[32m[+] Filtered events based on the earliest detection time:\033[0m")
@@ -183,10 +183,89 @@ def detect_UnmanagedPowerShell(evtx_path, data_rows, target_dll=None): # DEBUG -
     
     if user_input == 'y':
         # Save the results to a CSV file
-        evtx_to_csv(spotted_rows, evtx_path)
+        sysmon_evtx_to_csv(spotted_rows, evtx_path)
         
     else:
         print("\033[31m[-] Results not saved.\033[0m")
     print("\n\n")
 
+def detect_LsassDump(evtx_path, data_rows, placeholder=None):
+
+    spotted_rows = []
+    earliest_dump_time = None
+
+    for row in data_rows:
+        try:
+            event_id = row["EventID"]
+            if event_id == '10':
+                # Check if the process name is "lsass.exe", the granted access is "0x1fffff"
+                # and the source user is different from the target user
+                if (row["TargetImage"].lower().endswith("lsass.exe") and
+                    row["GrantedAccess"].lower() == "0x001fffff" and
+                    row["SourceUser"].split("\\")[-1].lower() != row["TargetUser"].split("\\")[-1].lower()):
+
+                     # Check if the event time is greater than the previous time frame
+                    dump_time = datetime.strptime(row["UtcTime"], "%Y-%m-%d %H:%M:%S.%f")
+                        
+                    # Initialize time_frame if it's the first iteration
+                    if earliest_dump_time is None or dump_time < earliest_dump_time:
+                        earliest_dump_time = dump_time
+                    
+                    print_sysmon_event(row)
+                    spotted_rows.append(row)
+
+        except KeyError:
+            print("KeyError: 'SourceImage' not found in row data.")
+            continue
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            continue
     
+    if earliest_dump_time:
+        print("\033[31m\n\n[!] Lsass dump detected. Fetch events starting from the earliest detection time? (Y/N)\033[0m\n")
+        user_input = input("Enter your choice: ").strip().lower()
+        if user_input == 'y':
+            security_logs_path = input("Enter the full path to the Security Logs .evtx file: ")
+            if not security_logs_path:
+                print("\033[31m[-] No path provided. Exiting.\033[0m")
+                exit(1)
+            elif not security_logs_path.endswith(".evtx"):
+                print("\033[31m[-] Invalid file type. Please provide a .evtx file.\033[0m")
+                exit(1)
+            
+            else:
+                # Convert the Security Logs .evtx file to CSV
+                security_logs_rows = security_evtx_parser(security_logs_path)
+                # print(security_logs_rows) DEBUG
+            
+            while True: # TODO: DEBUG ---------------------------------------------------------> NOT OK
+                # Filter the events based on the earliest event time
+                try:
+                    time_input = input("Now enter the time frame in minutes (or leave blank to display all events): ").strip()
+        
+                    if time_input == "":
+                        user_minutes = None  # or some default logic to handle 'all events'
+                        filter_events_by_time(security_logs_rows, earliest_dump_time, user_minutes) # TODO: security log rows are empty
+                        break
+                    
+                    user_minutes = int(time_input)
+                    filter_events_by_time(security_logs_rows, earliest_dump_time, user_minutes)
+                    break
+
+                except ValueError:
+                    print("\033[31m[-] Invalid input. Please enter a valid number.\033[0m")
+
+        else:
+            print("\033[31m[-] No events filtered.\033[0m")
+    
+    print("\033[32m[+] Analysis complete\033[0m", 
+          "\nWould you like to save the matched results to a CSV file? (Y/N)\n")
+    user_input = input("Enter your choice: ").strip().lower()
+    
+    if user_input == 'y':
+        # Save the results to a CSV file
+        sysmon_evtx_to_csv(spotted_rows, evtx_path)
+        
+    else:
+        print("\033[31m[-] Results not saved.\033[0m")
+    print("\n\n")

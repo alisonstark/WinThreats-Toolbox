@@ -8,12 +8,13 @@
 
 import os
 from pprint import pprint
+from datetime import datetime, timedelta
 
 def show_menu():
     print("=== ETW Log Analyzer Toolbox ===")
     print("1) DLL Hijacking Detection")
     print("2) Unmanaged PowerShell Detection")
-    print("3) C# Injection Detection (Coming Soon)")
+    print("3) Detect LSASS Dump")
     print("4) Exit")
     
     target_dll = None
@@ -49,8 +50,9 @@ def show_menu():
                     return choice, target_dll if target_dll else None
                 
                 # If the user selects options 2 or 3, return the choice and None for target_dll
-                return choice, None
-            
+                else:
+                    return choice, None
+                   
             else:
                 # In case user enters a number outside the range
                 # This will be handled in the main loop
@@ -62,9 +64,10 @@ def show_menu():
 
 # Function to print the event details
 # This function is called when a potential malicious activity is detected
-def print_event(event):
-    print("\033[36m[+] Summary of the activity\033[0m")
+def print_sysmon_event(event):
+    print("\033[36m\n[+] Summary of the activity\033[0m")
     
+    # Case of Unmanaged Powershell attacks
     if event['Image'] == "" or event['EventID'] == '8' or event['EventID'] == '10':
         print(f"Injector process: {event['SourceImage']}" + "\n",
               f"Injected process: {event['TargetImage']}" + "\n", 
@@ -75,7 +78,81 @@ def print_event(event):
           f"Event Time: {event['UtcTime']}" + "\n")
     
     pprint(event)
-    print("\n")
+
+# TODO: Implement a pretty printing function for security events too
+def print_security_event(event):
+
+    print("\033[36m\n[+] Summary of the activity\033[0m")
+    print(f"Process name: {event['ProcessName']}" + "\n",
+          f"Event Time: {event['TimeCreated']}" + "\n")
+    pprint(event)
+
+# Function to display all events after a specific time
+# Filter the events based on the earliest event time
+def filter_events_by_time(data_rows, time_frame=None, user_minutes=None):
+    if not data_rows:
+        print("\033[31m[-] No data rows available.\033[0m")
+        return
+    # Get the earliest event time
+    elif time_frame is not None:
+
+        sysmon_filtered_events = []
+        security_filtered_events = []
+        high_value_event_ids = ["4688", "4689", "4690", "4691", "4692", "4693", "4624", "4672", "4656", "4663"]
+
+        if user_minutes is not None:
+            if user_minutes < 0:
+                print("\033[31m[-] Invalid time frame. Please enter a positive number.\033[0m")
+                exit(1)
+            elif user_minutes > 0:
+                # Filter events within the specified time frame
+                time_threshold = time_frame + timedelta(minutes=user_minutes)
+                
+                for row in data_rows: 
+                    utc_time = row.get("UtcTime", "")
+                    time_created = row.get("TimeCreated", "")
+
+                    if utc_time:
+                        if time_frame <= datetime.strptime(row["UtcTime"], "%Y-%m-%d %H:%M:%S.%f") <= time_threshold:
+                            return sysmon_filtered_events.append(row)
+                    elif time_created:
+                        if time_frame <= datetime.strptime(row["TimeCreated"], "%Y-%m-%d %H:%M:%S.%f") <= time_threshold:
+                            return security_filtered_events.append(row)
+                
+        # if time_input == 0:
+        else:
+            # Filter events after the specified time
+            for row in data_rows:
+                utc_time = row.get("UtcTime", "") # TODO: DEBUG here ---------------------->
+                time_created = row.get("TimeCreated", "")
+
+                if utc_time:
+                    if time_frame <= datetime.strptime(utc_time, "%Y-%m-%d %H:%M:%S.%f"):
+                        sysmon_filtered_events.append(row)
+                elif time_created:
+                    if time_frame <= datetime.strptime(time_created, "%Y-%m-%d %H:%M:%S.%f"):
+                        security_filtered_events.append(row)
+
+        # Print the filtered Sysmon events
+        if sysmon_filtered_events:
+            for event in sysmon_filtered_events:
+                # print(event["EventID"]) # DEBUG
+                # Additional filtering
+                if event["EventID"] == '10':
+                    if event["TargetImage"].lower().endswith("lsass.exe"):
+                        print_sysmon_event(event)
+        
+        elif security_filtered_events:
+            for event in security_filtered_events:
+                # print(event["EventID"]) # DEBUG
+                # Additional filtering for specific log types
+                if event["EventID"] in high_value_event_ids:
+                    print_security_event(event)
+
+        print("\033[32m[+] Filtered events based on the earliest detection time of the dump\033[0m")
+        
+    else:
+        print("\033[31m[-] No events filtered.\033[0m")
 
 
 def get_evtx_path():

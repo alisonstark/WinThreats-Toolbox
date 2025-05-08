@@ -6,14 +6,14 @@
 # Main Program Loop
 # ===============================
 
-from scanners import detect_DLLHijack, detect_UnmanagedPowerShell
+from scanners import detect_DLLHijack, detect_UnmanagedPowerShell, detect_LsassDump
 from utils import show_menu, get_evtx_path
-from converters import evtx_parser
+from converters import sysmon_evtx_parser
 # from scanners import print_hijackable_dlls, print_lolbins  # DEBUG
 
 # "C:\\path\\to\\your\\evtx_file.evtx"  Replace with your actual path
 evtx_path = get_evtx_path()
-data_rows = evtx_parser(evtx_path)
+data_rows = sysmon_evtx_parser(evtx_path)
 
 while True:
     # Display the menu and get the user's selection
@@ -23,7 +23,7 @@ while True:
     options = {
         1: detect_DLLHijack, 
         2: detect_UnmanagedPowerShell,
-        #"3": detect_CSharpInjection,
+        3: detect_LsassDump,
         4: exit 
     }
 
