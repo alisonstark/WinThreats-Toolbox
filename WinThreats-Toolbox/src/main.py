@@ -1,14 +1,10 @@
-# Python Toolbox - ETW Log Analyzer
-# Author: moonpie (aka Alison Caique)
-# Date: April 28, 2025
-
 # ===============================
 # Main Program Loop
 # ===============================
 
 from scanners import detect_DLLHijack, detect_UnmanagedPowerShell, detect_LsassDump
-from utils import show_menu, get_evtx_path
-from converters import sysmon_evtx_parser
+from config.utils import show_menu, get_evtx_path
+from config.converters import sysmon_evtx_parser
 # from scanners import print_hijackable_dlls, print_lolbins  # DEBUG
 
 # "C:\\path\\to\\your\\evtx_file.evtx"  Replace with your actual path

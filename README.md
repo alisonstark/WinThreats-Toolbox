@@ -1,14 +1,19 @@
-# ETW Toolbox: Event Log Analyzer
+# EVE - Event Verification Engine
 
 ## Overview
 
-The **ETW Toolbox** is a Python-based tool designed to analyze Windows Event Logs using **Event Tracing for Windows (ETW)**. It provides functionalities to filter, detect, and log various system events, such as **DLL Hijacking**, through customized queries and filters, as well as saving results to a CSV file.
+The **ETW Toolbox** is a Python-based tool designed to analyze Windows Event Logs using **Event Tracing for Windows (ETW)**. It provides functionalities to filter, detect, and log various system events, such as 
+**DLL Hijacking**
+**Unmanaged Powershell Instances**
+**LSASS Dump**
 
-This tool is an essential utility for those working with **Sysmon Logs** and **Windows Event Logs**, particularly for security analysts and anyone interested in **Windows-based security monitoring**.
+through customized queries and filters, as well as saving results to a CSV file.
+
+This tool is an essential utility for those working with **Sysmon Logs** and **Windows Event Logs** (ETW), particularly for security analysts and anyone interested in **Windows-based security monitoring**.
 
 ## Features
 
-- **DLL Hijacking Detection**: Identify potentially malicious hijacking of legitimate DLLs (with customizable DLL lists).
+- **DLL Hijacking Detection**: Identify potentially malicious behavior.
 - **Customizable Filters**: Easily add or modify event filters to detect different kinds of system anomalies and suspicious behaviors.
 - **Event Log Analysis**: Use powerful filters to analyze Windows Event Logs with ease.
 

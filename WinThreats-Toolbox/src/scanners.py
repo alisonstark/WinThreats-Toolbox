@@ -1,16 +1,12 @@
-# Python Toolbox - ETW Log Analyzer
-# Author: moonpie (aka Alison Caique)
-# Date: April 28, 2025
-
 # ===============================
 # DLL Hijacking Detection, 
 # Unmanaged PowerShell Detection Program
 # ===============================
 
 import os
-from converters import security_evtx_parser, sysmon_evtx_to_csv
+from config.converters import security_evtx_parser, sysmon_evtx_to_csv
 from datetime import datetime, timedelta
-from utils import get_hijackable_dlls, get_lolbins, is_lolbin, print_sysmon_event, filter_events_by_time
+from config.utils import get_hijackable_dlls, get_lolbins, is_lolbin, print_sysmon_event, filter_events_by_time
 
 hijackable_dlls = get_hijackable_dlls()
 lolbins = get_lolbins()

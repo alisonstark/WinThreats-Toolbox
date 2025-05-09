@@ -1,7 +1,3 @@
-# PowerShell Toolbox - ETW Log Analyzer
-# Author: moonpie (aka Alison Caique)
-# Date: April 28, 2025
-
 # ===============================
 # Configurations and Arrays
 # ===============================
