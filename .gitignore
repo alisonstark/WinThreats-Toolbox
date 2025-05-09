@@ -1,5 +1,4 @@
 GitProjects.code-workspace
-WinThreats-Toolbox/__pycache__/evtx_converter.cpython-312.pyc
-.gitignore
-WinThreats-Toolbox/__pycache__
-WinThreats-Toolbox/venv
+EVE/.gitignore
+EVE/__pycache__
+# EVE/venv
