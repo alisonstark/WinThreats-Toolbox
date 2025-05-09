@@ -8,10 +8,13 @@
 
 
 $TargetDLLs = @("wininet.dll", "mswsock.dll", "ws2_32.dll", "wsock32.dll", "wininet.dll", "urlmon.dll", 
-"mshtml.dll", "shdocvw.dll", "actxprxy.dll", "msxml3.dll", "msxml6.dll", "msxml2.dll", "scrrun.dll", "vbscript.dll", "jscript.dll")
+"mshtml.dll", "shdocvw.dll", "actxprxy.dll", "msxml3.dll", "msxml6.dll", "msxml2.dll", "scrrun.dll", "vbscript.dll", "jscript.dll",
+"msxml.dll", "msxml3.dll", "msxml6.dll", "msxml2.dll", "scrrun.dll", "vbscript.dll", "jscript.dll", "msxml.dll", "msxml3.dll",
+"msxml6.dll", "msxml2.dll", "scrrun.dll", "vbscript.dll", "jscript.dll", "msxml.dll", "msxml3.dll", "msxml6.dll", "msxml2.dll")
+
 
 # Load the list of hijackable DLLs
-$TargetDLLs = Get-HijackableDLLs
+# $TargetDLLs = Get-HijackableDlls
 
 # ===============================
 # Functions
@@ -97,6 +100,8 @@ function Detect-UnmanagedPowerShell {
         ID      = 7
     }
 
+    Write-Host "`n[+] Parsing logs for possible unmanaged PowerShell instances..." -ForegroundColor Yellow
+
     Get-WinEvent -FilterHashtable $Filter | Where-Object {
      ($_.Properties[5].Value -like "*clr.dll") -or 
      ($_.Properties[5].Value -like "*clrjit.dll")
@@ -110,7 +115,7 @@ function Detect-LSASSDump {
 
     # Validate that the file exists
     if (-Not (Test-Path $EvtxPath)) {
-        Write-Host "The file path provided does not exist. Exiting Unmanaged PowerShell Detection." -ForegroundColor Red
+        Write-Host "The file path provided does not exist. Exiting LSASS Dump Detection." -ForegroundColor Red
         return
     }
 
@@ -118,8 +123,11 @@ function Detect-LSASSDump {
     $Filter = @{
         LogName = 'Microsoft-Windows-Sysmon/Operational'
         Path    = $EvtxPath
-        ID      = 7
+        ID      = 10
     }
+
+    Write-Host "`n[+] Parsing logs for possible LSASS Dump attempts..." -ForegroundColor Yellow
+
     Get-WinEvent -FilterHashtable $Filter | Where-Object {
         $_.Properties[8].Value -like "*lsass.exe" -and
         $_.Properties[9].Value -eq 0x1FFFFF -and
@@ -209,7 +217,10 @@ do {
         "1" { Detect-DLLHijack }
         "2" { Detect-UnmanagedPowerShell }
         "3" { Detect-LSASSDump }
-        "4" { Write-Host "Exiting..." -ForegroundColor Green; break }
+        "4" { Detect-StrangeParentChild }
+        "5" { Detect-ProcessInjection }
+        "6" { Detect-ProcessCreation }
+        "7" { Write-Host "Exiting..." -ForegroundColor Green; break }
         default { Write-Host "Invalid selection, please try again." -ForegroundColor Red }
     }
 
