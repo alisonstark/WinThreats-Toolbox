@@ -126,7 +126,7 @@ function Detect-LSASSDump {
 
     Get-WinEvent -FilterHashtable $Filter | Where-Object {
         $_.Properties[8].Value -like "*lsass.exe" -and
-        $_.Properties[9].Value -eq 0x1FFFFF -and
+        $_.Properties[9].Value -eq 0x001fffff -and
         $_.Properties[11].Value.ToLower() -notlike $_.Properties[12].Value.ToLower()
     } | 
     Format-List TimeCreated, ID, Message
