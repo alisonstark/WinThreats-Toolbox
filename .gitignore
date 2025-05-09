@@ -1,4 +1,3 @@
-GitProjects.code-workspace
+EVE/GitProjects.code-workspace
 EVE/.gitignore
-EVE/__pycache__
-# EVE/venv
+EVE/engine/__pycache__
