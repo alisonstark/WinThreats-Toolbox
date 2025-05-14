@@ -24,7 +24,7 @@ def show_menu():
             choice = int(input("Select an option (1-4): "))
             if choice in [1, 2, 3, 4]:
                 if choice == 1:
-                    print("Provide a specific DLL to check for hijacking (optional).")
+                    print("\nProvide a specific DLL to check for hijacking (optional).")
                     target_dll = input("Enter the DLL name (e.g., example.dll) or press Enter to skip: ")
                     
                     if target_dll and not target_dll.endswith(".dll"):
@@ -79,7 +79,6 @@ def print_sysmon_event(event):
     
     pprint(event)
 
-# TODO: Implement a pretty printing function for security events too
 def print_security_event(event):
 
     print("\033[36m\n[+] Summary of the activity\033[0m")
@@ -89,6 +88,10 @@ def print_security_event(event):
 
 # Function to display all events after a specific time
 # Filter the events based on the earliest event time
+# TODO: Generalize func. Potential solutions are...
+# [ ] Adapt func to recognize the events type (use flags)
+# [ ] Make this func so that it only filters events and stores them to a list or set
+# [ ] Call event printing function (separation of responsibilities)
 def filter_events_by_time(data_rows, time_frame=None, user_minutes=None):
     if not data_rows:
         print("\033[31m[-] No data rows available.\033[0m")
@@ -119,11 +122,11 @@ def filter_events_by_time(data_rows, time_frame=None, user_minutes=None):
                         if time_frame <= datetime.strptime(row["TimeCreated"], "%Y-%m-%d %H:%M:%S.%f") <= time_threshold:
                             return security_filtered_events.append(row)
                 
-        # if time_input == 0:
+        # if user_minutes is None
         else:
             # Filter events after the specified time
             for row in data_rows:
-                utc_time = row.get("UtcTime", "") # TODO: DEBUG here ---------------------->
+                utc_time = row.get("UtcTime", "") # TODO: DEBUG here
                 time_created = row.get("TimeCreated", "")
 
                 if utc_time:
@@ -133,7 +136,7 @@ def filter_events_by_time(data_rows, time_frame=None, user_minutes=None):
                     if time_frame <= datetime.strptime(time_created, "%Y-%m-%d %H:%M:%S.%f"):
                         security_filtered_events.append(row)
 
-        # Print the filtered Sysmon events
+        # Print the filtered Sysmon LSASS events
         if sysmon_filtered_events:
             for event in sysmon_filtered_events:
                 # print(event["EventID"]) # DEBUG
@@ -195,7 +198,7 @@ def get_hijackable_dlls():
     return hijackable_dlls
 
 # Generate a set of common LOLBins from a text file
-def get_lolbins(): # TODO: DEBUG set of lolbins
+def get_lolbins():
     lolbins = set()
     current_dir = os.path.dirname(__file__)
     file_path = os.path.join(current_dir, "lolbins.txt")

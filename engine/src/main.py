@@ -2,12 +2,17 @@
 # Main Program Loop
 # ===============================
 
+from pathlib import Path
+import sys
+
+# Add the parent directory of src to sys.path
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+
 from scanners import detect_DLLHijack, detect_UnmanagedPowerShell, detect_LsassDump
 from config.utils import show_menu, get_evtx_path
 from config.converters import sysmon_evtx_parser
 # from scanners import print_hijackable_dlls, print_lolbins  # DEBUG
 
-# "C:\\path\\to\\your\\evtx_file.evtx"  Replace with your actual path
 evtx_path = get_evtx_path()
 data_rows = sysmon_evtx_parser(evtx_path)
 

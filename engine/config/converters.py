@@ -76,7 +76,7 @@ def sysmon_evtx_to_csv(data_rows, evtx_path):
             writer = csv.DictWriter(f, fieldnames=sysmon_event_data_fields)
             writer.writeheader()
             writer.writerows(data_rows)
-    print(f"CSV file saved to: {csv_path}")
+    print("\033[32m[+] Results saved to CSV file:\033[0m " + csv_path)
 
 def security_evtx_parser(evtx_path):
     all_rows = []
@@ -85,7 +85,7 @@ def security_evtx_parser(evtx_path):
         for record in log.records():
             try:
                 xml_str = record.xml()
-                # print(ET.tostring(record.xml(), encoding='unicode', method='xml'))  # TODO: DEBUG XML format
+                # print(ET.tostring(record.xml(), encoding='unicode', method='xml'))
                 root = ET.fromstring(xml_str)
 
                 # Namespace-aware parsing
