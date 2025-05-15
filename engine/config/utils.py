@@ -152,7 +152,7 @@ def filter_events_by_time(data_rows, time_frame=None, user_minutes=None):
                 if event["EventID"] in high_value_event_ids:
                     print_security_event(event)
 
-        print("\033[32m[+] Filtered events based on the earliest detection time of the dump\033[0m")
+        print("\033[32m[+] Filtered events based on the earliest detection time\033[0m")
         
     else:
         print("\033[31m[-] No events filtered.\033[0m")
