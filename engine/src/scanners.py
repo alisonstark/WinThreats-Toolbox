@@ -23,7 +23,7 @@ lolbins = get_lolbins()
 #    for lolbin in lolbins:
 #        print(lolbin)
 
-def detect_DLLHijack(data_rows, evtx_path=None, target_dll=None):
+def detect_DLLHijack(data_rows, evtx_path=None, target_dll=None): #FIXME: not working
 
     spotted_rows = []
     earliest_event_time = None
@@ -76,14 +76,14 @@ def detect_DLLHijack(data_rows, evtx_path=None, target_dll=None):
                 break
             print("\033[31m[-] Invalid input. Please enter 'Y' or 'N'.\033[0m")
 
-        if user_input == 'y':
+        # FIXME: Time-based displaying of events not working
+        if user_input == 'y': # BUG: "An error occurred: list indices must be integers or slices, not str"
             time_input = ""
             while True:
                 # Filter the events based on the earliest event time
                 try:
                     time_input = input("Enter the time frame in minutes (leave blank to display all events): ").strip().lower()
                     if time_input != "":
-                        print("ENTERED HERE")
                         user_minutes = int(time_input)
 
                         if user_minutes < 0:

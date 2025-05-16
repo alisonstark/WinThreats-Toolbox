@@ -58,18 +58,28 @@ def sysmon_evtx_parser(evtx_path):
                     # print(name + "##########" + value) # DEBUG data names from sysmon_event_data_fields and their value
 
                     if name == "UtcTime":
-                        # Convert UtcTime to local time
-                        utc_time = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%fZ")
-                        local_time = utc_time.strftime("%Y-%m-%d %H:%M:%S.%f")
-                        row_dict['TimeCreated'] = local_time
+                        try:
+                            # Try with T and Z (ideal ISO format)
+                            utc_time = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%fZ")
+                        except ValueError:
+                            try:
+                                # Fallback to space-separated format (what you have)
+                                utc_time = datetime.strptime(value, "%Y-%m-%d %H:%M:%S.%f")
+                            except ValueError:
+                                print(f"[-] Failed to parse UtcTime: {value}")
+                                continue
 
+                        # local_time = utc_time.strftime("%Y-%m-%d %H:%M:%S.%f")
+                        row_dict['TimeCreated'] = utc_time # Not local_time
+                    
                     elif name in row_dict:
                         row_dict[name] = value
+
 
                 all_rows.append(row_dict)
 
             except Exception as e:
-                print(f"Error processing record: {e}")
+                print(f"Error processing Sysmon record: {e}")
                 print(f"Record XML: {record.xml()}")
 
     # for row in all_rows:
@@ -108,10 +118,12 @@ def security_evtx_parser(evtx_path):
                 # ACTUAL xml format: <ns0:TimeCreated SystemTime="2025-04-28T12:34:56.789Z"/>
                 time_created_elem = root.find(".//ns0:TimeCreated", ns)
                 if time_created_elem is not None and time_created_elem.attrib.get("SystemTime"):
-                    # Convert SystemTime to local time
-                    utc_time = datetime.strptime(time_created_elem.attrib.get("SystemTime"), "%Y-%m-%dT%H:%M:%S.%fZ")
-                    local_time = utc_time.strftime("%Y-%m-%d %H:%M:%S.%f")
-                    row_dict['TimeCreated'] = local_time
+                    try:
+                        # Parse to datetime object
+                        utc_time = datetime.strptime(time_created_elem.attrib.get("SystemTime"), "%Y-%m-%dT%H:%M:%S.%fZ")
+                        row_dict['TimeCreated'] = utc_time
+                    except ValueError:
+                        print(f"[-] Failed to parse SystemTime: {time_created_elem.attrib.get('SystemTime')}")
 
                 # Extract using namespace
                 for data in root.findall(".//ns0:Data", ns): # DEBUG
@@ -126,7 +138,7 @@ def security_evtx_parser(evtx_path):
                 all_rows.append(row_dict)
 
             except Exception as e:
-                print(f"Error processing record: {e}")
+                print(f"Error processing Security record: {e}")
                 print(f"Record XML: {record.xml()}")
 
     return all_rows
