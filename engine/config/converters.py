@@ -4,12 +4,13 @@
 
 # Python imports
 from Evtx.Evtx import Evtx
+from datetime import datetime
 import csv
 
 import xml.etree.ElementTree as ET
 
 sysmon_event_data_fields = [
-    "EventID", "RuleName", "UtcTime", "ProcessGuid", "ProcessId", "Image", "ImageLoaded",
+    "EventID", "RuleName", "TimeCreated", "ProcessGuid", "ProcessId", "Image", "ImageLoaded",
     "Hashes", "Signed", "Signature", "SignatureStatus", "SourceProcessGuid", "SourceProcessId",
     "SourceImage", "TargetProcessGuid", "TargetProcessId", "TargetImage", "GrantedAccess", "CallTrace",
     "User", "SourceUser", "TargetUser", "LogonGuid", "LogonId", "TerminalSessionId", "IntegrityLevel", 
@@ -56,7 +57,13 @@ def sysmon_evtx_parser(evtx_path):
                     value = data.text or ""
                     # print(name + "##########" + value) # DEBUG data names from sysmon_event_data_fields and their value
 
-                    if name in row_dict:
+                    if name == "UtcTime":
+                        # Convert UtcTime to local time
+                        utc_time = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%fZ")
+                        local_time = utc_time.strftime("%Y-%m-%d %H:%M:%S.%f")
+                        row_dict['TimeCreated'] = local_time
+
+                    elif name in row_dict:
                         row_dict[name] = value
 
                 all_rows.append(row_dict)
@@ -101,7 +108,10 @@ def security_evtx_parser(evtx_path):
                 # ACTUAL xml format: <ns0:TimeCreated SystemTime="2025-04-28T12:34:56.789Z"/>
                 time_created_elem = root.find(".//ns0:TimeCreated", ns)
                 if time_created_elem is not None and time_created_elem.attrib.get("SystemTime"):
-                    row_dict["TimeCreated"] = time_created_elem.attrib.get("SystemTime")
+                    # Convert SystemTime to local time
+                    utc_time = datetime.strptime(time_created_elem.attrib.get("SystemTime"), "%Y-%m-%dT%H:%M:%S.%fZ")
+                    local_time = utc_time.strftime("%Y-%m-%d %H:%M:%S.%f")
+                    row_dict['TimeCreated'] = local_time
 
                 # Extract using namespace
                 for data in root.findall(".//ns0:Data", ns): # DEBUG

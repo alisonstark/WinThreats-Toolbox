@@ -1,12 +1,14 @@
 # ===============================
-# DLL Hijacking Detection, 
+# DLL Hijacking Detection Program
 # Unmanaged PowerShell Detection Program
+# LSASS Dump Detection Program
 # ===============================
 
 import os
 from config.converters import security_evtx_parser, sysmon_evtx_to_csv
-from datetime import datetime, timedelta
-from config.utils import get_hijackable_dlls, get_lolbins, is_lolbin, print_sysmon_event, filter_events_by_time
+from datetime import timedelta
+from config.utils import get_hijackable_dlls, get_lolbins, is_lolbin, filter_events_by_time
+from config.logprint import print_sysmon_event
 
 hijackable_dlls = get_hijackable_dlls()
 lolbins = get_lolbins()
@@ -21,7 +23,7 @@ lolbins = get_lolbins()
 #    for lolbin in lolbins:
 #        print(lolbin)
 
-def detect_DLLHijack(evtx_path, data_rows, target_dll=None):
+def detect_DLLHijack(data_rows, evtx_path=None, target_dll=None):
 
     spotted_rows = []
     earliest_event_time = None
@@ -50,8 +52,8 @@ def detect_DLLHijack(evtx_path, data_rows, target_dll=None):
         if event_id == '7' and image.endswith(".exe") and image_loaded:
             # Check if the loaded image is a DLL
             dll_name = os.path.basename(image_loaded).split("\\")[-1].lower() # TODO: is os.path.basename necessary?
-            
-            event_time = datetime.strptime(row["UtcTime"], "%Y-%m-%d %H:%M:%S.%f")
+
+            event_time = row.get("TimeCreated", "") #BUG ?
             if earliest_event_time is None or earliest_event_time > event_time:
                 earliest_event_time = event_time
 
@@ -120,7 +122,7 @@ def detect_DLLHijack(evtx_path, data_rows, target_dll=None):
     print("\033[32m[+] Analysis complete\033[0m", "\nWould you like to save the matched results to a CSV file? Y/N\n")
     user_input = input("Enter your choice: ").strip().lower()
     
-    if user_input == 'y':
+    if user_input == 'y' and evtx_path:
         # Save the results to a CSV file for further analysis or record-keeping
         sysmon_evtx_to_csv(spotted_rows, evtx_path)
     else:
@@ -128,8 +130,8 @@ def detect_DLLHijack(evtx_path, data_rows, target_dll=None):
     
     print("\n\n")
 
-def detect_UnmanagedPowerShell(evtx_path, data_rows, target_dll=None):
-    
+def detect_UnmanagedPowerShell(data_rows, evtx_path=None, target_dll=None):
+
     spotted_rows = []
     clr_dlls = ["clr.dll", "clrjit.dll"]
 
@@ -157,7 +159,7 @@ def detect_UnmanagedPowerShell(evtx_path, data_rows, target_dll=None):
                         clr_hits.append(row)
                         
                         # Check if the event time is greater than the previous time frame
-                        event_time = datetime.strptime(row["UtcTime"], "%Y-%m-%d %H:%M:%S.%f")
+                        event_time = row['TimeCreated']
                         
                         # Initialize time_frame if it's the first iteration
                         if earliest_event_time is None or event_time < earliest_event_time:
@@ -170,8 +172,8 @@ def detect_UnmanagedPowerShell(evtx_path, data_rows, target_dll=None):
                         clr_hits.append(row)
 
                         # Check if the event time is greater than the previous time frame
-                        event_time = datetime.strptime(row["UtcTime"], "%Y-%m-%d %H:%M:%S.%f")
-                        
+                        event_time = row['TimeCreated']
+
                         # Initialize time_frame if it's the first iteration
                         if earliest_event_time is None or event_time < earliest_event_time:
                             earliest_event_time = event_time
@@ -208,15 +210,15 @@ def detect_UnmanagedPowerShell(evtx_path, data_rows, target_dll=None):
                 time_threshold = earliest_event_time + timedelta(minutes=user_minutes)
                 filtered_events = [
                     row for row in data_rows 
-                    if earliest_event_time <= datetime.strptime(row["UtcTime"], "%Y-%m-%d %H:%M:%S.%f") <= time_threshold
+                    if earliest_event_time <= row['TimeCreated'] <= time_threshold
                 ]
             # if time_input == 0:
             else:
                 filtered_events = [
                     row for row in data_rows 
-                    if datetime.strptime(row["UtcTime"], "%Y-%m-%d %H:%M:%S.%f") >= earliest_event_time
+                    if row['TimeCreated'] >= earliest_event_time
                 ]
-        
+
         except ValueError:
             print("\033[31m[-] Invalid input. Please enter a valid number.\033[0m")
             exit(1)
@@ -244,7 +246,7 @@ def detect_UnmanagedPowerShell(evtx_path, data_rows, target_dll=None):
           "\nWould you like to save the matched results to a CSV file? (Y/N)\n")
     user_input = input("Enter your choice: ").strip().lower()
     
-    if user_input == 'y':
+    if user_input == 'y' and evtx_path:
         # Save the results to a CSV file
         sysmon_evtx_to_csv(spotted_rows, evtx_path)
         
@@ -252,7 +254,7 @@ def detect_UnmanagedPowerShell(evtx_path, data_rows, target_dll=None):
         print("\033[31m[-] Results not saved.\033[0m")
     print("\n\n")
 
-def detect_LsassDump(evtx_path, data_rows, placeholder=None):
+def detect_LsassDump(data_rows, evtx_path=None, placeholder=None):
 
     spotted_rows = []
     earliest_dump_time = None
@@ -268,8 +270,8 @@ def detect_LsassDump(evtx_path, data_rows, placeholder=None):
                     row["SourceUser"].split("\\")[-1].lower() != row["TargetUser"].split("\\")[-1].lower()):
 
                      # Check if the event time is greater than the previous time frame
-                    dump_time = datetime.strptime(row["UtcTime"], "%Y-%m-%d %H:%M:%S.%f")
-                        
+                    dump_time = row['TimeCreated']
+
                     # Initialize time_frame if it's the first iteration
                     if earliest_dump_time is None or dump_time < earliest_dump_time:
                         earliest_dump_time = dump_time
@@ -284,8 +286,8 @@ def detect_LsassDump(evtx_path, data_rows, placeholder=None):
             print(f"An error occurred: {e}")
             continue
     
-    if earliest_dump_time:
-        print("\033[31m\n\n[!] Lsass dump detected. Fetch events starting from the earliest detection time? (Y/N)\033[0m\n")
+    if earliest_dump_time and placeholder is None:
+        print("\033[31m\n[!] Lsass dump detected. Fetch events starting from the earliest detection time? (Y/N)\033[0m\n")
         user_input = input("Enter your choice: ").strip().lower()
         if user_input == 'y':
             security_logs_path = input("Enter the full path to the Security Logs .evtx file: ")
@@ -325,7 +327,7 @@ def detect_LsassDump(evtx_path, data_rows, placeholder=None):
           "\nWould you like to save the matched results to a CSV file? (Y/N)\n")
     user_input = input("Enter your choice: ").strip().lower()
     
-    if user_input == 'y':
+    if user_input == 'y' and evtx_path:
         # Save the results to a CSV file
         sysmon_evtx_to_csv(spotted_rows, evtx_path)
         

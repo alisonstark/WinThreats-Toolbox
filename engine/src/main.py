@@ -34,5 +34,5 @@ while True:
             break
         
         else:
-            options[selection[0]](evtx_path, data_rows, selection[1])  # Pass the target_dll if provided
+            options[selection[0]](data_rows, evtx_path, selection[1])  # Pass the target_dll if provided
         # break  # Exit the loop after processing the selection

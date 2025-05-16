@@ -1,14 +1,9 @@
-# Python Toolbox - ETW Log Analyzer
-# Author: moonpie (aka Alison Caique)
-# Date: April 28, 2025
-
 # ===============================
 # Auxiliary Functions
 # ===============================
 
 import os
-from pprint import pprint
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 def show_menu():
     print("=== ETW Log Analyzer Toolbox ===")
@@ -62,101 +57,74 @@ def show_menu():
         except ValueError:
             print("Invalid input. Please enter a number between 1 and 4.")
 
-# Function to print the event details
-# This function is called when a potential malicious activity is detected
-def print_sysmon_event(event):
-    print("\033[36m\n[+] Summary of the activity\033[0m")
-    
-    # Case of Unmanaged Powershell attacks
-    if event['Image'] == "" or event['EventID'] == '8' or event['EventID'] == '10':
-        print(f"Injector process: {event['SourceImage']}" + "\n",
-              f"Injected process: {event['TargetImage']}" + "\n", 
-              f"Event Time: {event['UtcTime']}" + "\n")
-    
-    else:
-        print(f"Initiator process: {event['Image']}" + "\n",
-          f"Event Time: {event['UtcTime']}" + "\n")
-    
-    pprint(event)
-
-def print_security_event(event):
-
-    print("\033[36m\n[+] Summary of the activity\033[0m")
-    print(f"Process name: {event['ProcessName']}" + "\n",
-          f"Event Time: {event['TimeCreated']}" + "\n")
-    pprint(event)
-
 # Function to display all events after a specific time
 # Filter the events based on the earliest event time
-# TODO: Generalize func. Potential solutions are...
-# [ ] Adapt func to recognize the events type (use flags)
-# [ ] Make this func so that it only filters events and stores them to a list or set
-# [ ] Call event printing function (separation of responsibilities)
-def filter_events_by_time(data_rows, time_frame=None, user_minutes=None):
+# [x] Make this func so that it only filters events and stores them to a list or set
+# [x] Call event printing function (separation of responsibilities)
+def filter_events_by_time(data_rows, starting_time, user_minutes=None):
     if not data_rows:
         print("\033[31m[-] No data rows available.\033[0m")
-        return
-    # Get the earliest event time
-    elif time_frame is not None:
-
-        sysmon_filtered_events = []
-        security_filtered_events = []
-        high_value_event_ids = ["4688", "4689", "4690", "4691", "4692", "4693", "4624", "4672", "4656", "4663"]
-
-        if user_minutes is not None:
-            if user_minutes < 0:
-                print("\033[31m[-] Invalid time frame. Please enter a positive number.\033[0m")
-                exit(1)
-            elif user_minutes > 0:
-                # Filter events within the specified time frame
-                time_threshold = time_frame + timedelta(minutes=user_minutes)
-                
-                for row in data_rows: 
-                    utc_time = row.get("UtcTime", "")
-                    time_created = row.get("TimeCreated", "")
-
-                    if utc_time:
-                        if time_frame <= datetime.strptime(row["UtcTime"], "%Y-%m-%d %H:%M:%S.%f") <= time_threshold:
-                            return sysmon_filtered_events.append(row)
-                    elif time_created:
-                        if time_frame <= datetime.strptime(row["TimeCreated"], "%Y-%m-%d %H:%M:%S.%f") <= time_threshold:
-                            return security_filtered_events.append(row)
-                
-        # if user_minutes is None
-        else:
-            # Filter events after the specified time
-            for row in data_rows:
-                utc_time = row.get("UtcTime", "") # TODO: DEBUG here
-                time_created = row.get("TimeCreated", "")
-
-                if utc_time:
-                    if time_frame <= datetime.strptime(utc_time, "%Y-%m-%d %H:%M:%S.%f"):
-                        sysmon_filtered_events.append(row)
-                elif time_created:
-                    if time_frame <= datetime.strptime(time_created, "%Y-%m-%d %H:%M:%S.%f"):
-                        security_filtered_events.append(row)
-
-        # Print the filtered Sysmon LSASS events
-        if sysmon_filtered_events:
-            for event in sysmon_filtered_events:
-                # print(event["EventID"]) # DEBUG
-                # Additional filtering
-                if event["EventID"] == '10':
-                    if event["TargetImage"].lower().endswith("lsass.exe"):
-                        print_sysmon_event(event)
+        return []
+    # Check if starting_time is not None
+    elif starting_time:
+        filtered_events = []
+        event_count = 0
+        max_events = 20
         
-        elif security_filtered_events:
-            for event in security_filtered_events:
-                # print(event["EventID"]) # DEBUG
-                # Additional filtering for specific log types
-                if event["EventID"] in high_value_event_ids:
-                    print_security_event(event)
+        # Filter events based on the earliest event time
+        while True:
+            user_input = input("Enter the time frame in minutes (or press Enter to skip): ").strip()
+
+            if user_input == "":
+                user_minutes = 0
+                break
+
+            try:
+                user_minutes = int(user_input)
+                if user_minutes < 0:
+                    print("\033[31m[-] Invalid time frame. Please enter a positive number.\033[0m")
+                else:
+                    break
+            except ValueError:
+                print("\033[31m[-] Invalid input. Please enter a valid number or press Enter to skip.\033[0m")
+
+        # Filter events within the specified time frame
+        time_threshold = starting_time + timedelta(minutes=user_minutes)
+        
+        # Populate the filtered events list
+        for row in data_rows: 
+            time_created = row.get('TimeCreated', "")
+
+            # Check if the event is within the specified time frame
+            if time_threshold != starting_time and starting_time <= time_created <= time_threshold:
+                filtered_events.append(row)
+            
+            # Filter events after the specified time
+            elif time_threshold == starting_time:
+                
+                if time_created >= starting_time:
+                    filtered_events.append(row)
+                    event_count += 1
+                    # Limit the number of events to be displayed
+                    if event_count > max_events:
+                        print("\033[31m[!] There are more than 20 events. Proceed?\033[0m")
+                        user_input = input("Press 'y' to continue or any other key to stop: ").strip().lower()
+                        if user_input != 'y':
+                            print("\033[31m[!] Stopping the filtering.\033[0m")
+                            break
+                        else:
+                            print("\033[32m[+] Continuing to filter events...\033[0m")
+                            # Reset the event count
+                            event_count = 0
+                            continue
 
         print("\033[32m[+] Filtered events based on the earliest detection time\033[0m")
         
     else:
         print("\033[31m[-] No events filtered.\033[0m")
+        return []
 
+    return filtered_events
 
 def get_evtx_path():
     evtx_path = input("Enter the full path to the .evtx file: ")
@@ -172,16 +140,18 @@ def get_evtx_path():
     
     return evtx_path
 
-# USAGE
-# all_events = evtx_parser("path/to/log.evtx", "csv/path.csv")
-# filtered_events = filter_events_by_id(all_events, [13])
-
 # Generate a list of hijackable DLLs from a text file
 # The text file should be in the same directory as this script
 def get_hijackable_dlls():
     hijackable_dlls = set()
+    
+    # Path to the current script
     current_dir = os.path.dirname(__file__)
-    file_path = os.path.join(current_dir, "hijackable_dlls.txt")
+    
+    # Go to the parent of 'config' and then into 'data'
+    base_dir = os.path.abspath(os.path.join(current_dir, ".."))
+    file_path = os.path.join(base_dir, "data", "hijackable_dlls.txt")
+
     with open(file_path, "r", encoding="utf-8") as f:
         for line in f:
             dll_array = line.split(" \t")
@@ -200,8 +170,13 @@ def get_hijackable_dlls():
 # Generate a set of common LOLBins from a text file
 def get_lolbins():
     lolbins = set()
+
+    # Path to the current script
     current_dir = os.path.dirname(__file__)
-    file_path = os.path.join(current_dir, "lolbins.txt")
+    
+    # Go to the parent of 'config' and then into 'data'
+    base_dir = os.path.abspath(os.path.join(current_dir, ".."))
+    file_path = os.path.join(base_dir, "data", "lolbins.txt")
     with open(file_path, "r", encoding="utf-8") as f:
         for line in f:
             lolbins.add(line.strip().lower())
