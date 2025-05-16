@@ -8,7 +8,7 @@ import os
 from config.converters import security_evtx_parser, sysmon_evtx_to_csv
 from datetime import timedelta
 from config.utils import get_hijackable_dlls, get_lolbins, is_lolbin, filter_events_by_time
-from config.logprint import print_sysmon_event
+from config.logprint import print_sysmon_event, print_security_event
 
 hijackable_dlls = get_hijackable_dlls()
 lolbins = get_lolbins()
@@ -53,7 +53,7 @@ def detect_DLLHijack(data_rows, evtx_path=None, target_dll=None):
             # Check if the loaded image is a DLL
             dll_name = os.path.basename(image_loaded).split("\\")[-1].lower() # TODO: is os.path.basename necessary?
 
-            event_time = row.get("TimeCreated", "") #BUG ?
+            event_time = row.get("TimeCreated", "")
             if earliest_event_time is None or earliest_event_time > event_time:
                 earliest_event_time = event_time
 
@@ -92,13 +92,15 @@ def detect_DLLHijack(data_rows, evtx_path=None, target_dll=None):
 
                         elif user_minutes > 0:
                             # Filter events within the specified time frame
-                            filter_events_by_time(spotted_rows, earliest_event_time, user_minutes) # FIXME: filter func is not generalized, prints Sysmon #10 events
+                            filtered_events = filter_events_by_time(spotted_rows, earliest_event_time, user_minutes)
+                            print_sysmon_event(filtered_events)
                             break
 
                     else:
                         # Display all events
                         print("\033[32m[+] Displaying all events\033[0m")
-                        filter_events_by_time(spotted_rows, earliest_event_time, None)
+                        filtered_events = filter_events_by_time(spotted_rows, earliest_event_time, None)
+                        print_sysmon_event(filtered_events)
                         break
 
                 except ValueError:
@@ -310,11 +312,13 @@ def detect_LsassDump(data_rows, evtx_path=None, placeholder=None):
         
                     if time_input == "":
                         user_minutes = None  # or some default logic to handle 'all events'
-                        filter_events_by_time(security_logs_rows, earliest_dump_time, user_minutes) # TODO: security log rows are empty
+                        filtered_events = filter_events_by_time(security_logs_rows, earliest_dump_time, user_minutes) # TODO: security log rows are empty
+                        print_security_event(filtered_events)
                         break
                     
                     user_minutes = int(time_input)
-                    filter_events_by_time(security_logs_rows, earliest_dump_time, user_minutes)
+                    filtered_events = filter_events_by_time(security_logs_rows, earliest_dump_time, user_minutes)
+                    print_security_event(filtered_events)
                     break
 
                 except ValueError:

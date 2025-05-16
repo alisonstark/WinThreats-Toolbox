@@ -30,8 +30,8 @@ def print_security_event(event):
     
     pprint(event)
 
-# TODO: Test this function
-def display_suspicious_events(events):
+# TODO: Test display_suspicious_events()
+def display_suspicious_events(events, placeholder1=None, placeholder2=None):
     if not events:
         print("\033[31m[-] No suspicious events found.\033[0m")
         return

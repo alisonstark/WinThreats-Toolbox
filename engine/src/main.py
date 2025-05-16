@@ -11,6 +11,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 from scanners import detect_DLLHijack, detect_UnmanagedPowerShell, detect_LsassDump
 from config.utils import show_menu, get_evtx_path
 from config.converters import sysmon_evtx_parser
+from config.logprint import display_suspicious_events
 # from scanners import print_hijackable_dlls, print_lolbins  # DEBUG
 
 evtx_path = get_evtx_path()
@@ -25,11 +26,12 @@ while True:
         1: detect_DLLHijack, 
         2: detect_UnmanagedPowerShell,
         3: detect_LsassDump,
-        4: exit 
+        4: display_suspicious_events,
+        5: exit
     }
 
     if selection[0] in options:
-        if selection[0] == 4:
+        if selection[0] == 5:
             print("\033[32m[+] Exiting the program...\033[0m\n")
             break
         

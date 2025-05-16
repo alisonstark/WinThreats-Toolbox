@@ -16,8 +16,8 @@ def show_menu():
     # Loop until a valid choice is made
     while True:
         try:
-            choice = int(input("Select an option (1-4): "))
-            if choice in [1, 2, 3, 4]:
+            choice = int(input("Select an option (1-5): "))
+            if choice in [1, 2, 3, 4, 5]:
                 if choice == 1:
                     print("\nProvide a specific DLL to check for hijacking (optional).")
                     target_dll = input("Enter the DLL name (e.g., example.dll) or press Enter to skip: ")
