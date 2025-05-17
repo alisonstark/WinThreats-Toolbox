@@ -61,8 +61,6 @@ def show_menu():
 
 # Function to display all events after a specific time
 # Filter the events based on the earliest event time
-# [x] Make this func so that it only filters events and stores them to a list or set
-# [x] Call event printing function (separation of responsibilities)
 def filter_events_by_time(data_rows, starting_time, user_minutes):
     if not data_rows:
         print("\033[31m[-] No data rows available.\033[0m")
@@ -92,7 +90,7 @@ def filter_events_by_time(data_rows, starting_time, user_minutes):
                 if time_created >= starting_time:
                     filtered_events.append(row)
                     event_count += 1
-                    # Limit the number of events to be displayed
+                    # Limit the number of events to be displayed #FIXME: Keeps displaying max_events msg with every loop iteration that exceeds 20
                     if event_count > max_events:
                         print("\033[31m[!] There are more than 20 events. Proceed?\033[0m")
                         user_input = input("Press 'y' to continue or any other key to stop: ").strip().lower()

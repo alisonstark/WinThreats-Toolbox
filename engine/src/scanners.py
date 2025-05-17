@@ -6,7 +6,6 @@
 
 import os
 from config.converters import security_evtx_parser, sysmon_evtx_to_csv
-from datetime import timedelta
 import config.utils as conf
 from config.logprint import print_sysmon_event, print_security_event
 
@@ -62,8 +61,10 @@ def detect_DLLHijack(data_rows, evtx_path=None, target_dll=None):
     
     # Display all other types of events starting from the earliest possible DLL hijacking time
     # User can choose to capture all events within a fixed time window
-    if len(spotted_rows) != 0:
-        print("\033[31m[!] Potential DLL Hijacking detected. Fetch other events starting from the earliest detection time? (Y/N)\033[0m")
+    len_of_rows = len(spotted_rows)
+    if len_of_rows != 0:
+        print(f"\n\033[31m[!]{len_of_rows} potential DLL Hijacking events were detected.\033[0m")
+        print("Fetch all events starting from the earliest detection time? (Y/N)")
         
         while True:
             user_input = input("Enter your choice: ").strip().lower()
@@ -72,7 +73,7 @@ def detect_DLLHijack(data_rows, evtx_path=None, target_dll=None):
             print("\033[31m[-] Invalid input. Please enter 'Y' or 'N'.\033[0m")
 
         if user_input == 'y':
-            filtered_events = conf.get_events_filtered_by_time(spotted_rows, earliest_event_time)
+            filtered_events = conf.get_events_filtered_by_time(data_rows, earliest_event_time)
             for event in filtered_events:
                 print_sysmon_event(event)
 
@@ -84,7 +85,18 @@ def detect_DLLHijack(data_rows, evtx_path=None, target_dll=None):
         print("\033[31m[-] No events filtered.\033[0m")
         return
     
-    print("\033[32m[+] Analysis complete\033[0m", "\nWould you like to save the matched results to a CSV file? Y/N\n")
+    len_of_filtered_events = len(filtered_events)
+    if len_of_filtered_events > 0:
+        print("\n\n\033[32m[+] Analysis complete\033[0m\n", 
+              f"{len_of_filtered_events} events were filtered\n",
+              f"of a total of {len_of_rows} events.\n",
+              "\nWould you like to save the matched results to a CSV file? (Y/N)")
+    
+    elif len_of_filtered_events == 0:
+        print("\n\n\033[32m[+] Analysis complete\033[0m\n", 
+              f"{len_of_rows} events detected.\n",
+              "\nWould you like to save the matched results to a CSV file? (Y/N)")
+
     while True:
         user_input = input("Enter your choice: ").strip().lower()
         if user_input in ['y', 'n']:
@@ -109,99 +121,127 @@ def detect_UnmanagedPowerShell(data_rows, evtx_path=None, target_dll=None):
     # Number of hits
     injection_suspects = []
     clr_hits = []
-    # network_alerts = []
+    network_alerts = []
 
     earliest_event_time = None
 
     for row in data_rows:
-        try:
-            event_id = row["EventID"]
+        image_loaded = row.get("ImageLoaded", "")
+        event_id = row.get("EventID", "")
             
-            if event_id == '7':          
-                if row["ImageLoaded"]:
+        if event_id == '7' and image_loaded != "":          
+            
+            # Check if the loaded image is a DLL
+            dll_name = os.path.basename(image_loaded).split("\\")[-1].lower()
+            
+            # If a target DLL is provided, check if it matches the loaded DLL
+            if target_dll and target_dll.lower() == dll_name:
+                print_sysmon_event(row)
+                spotted_rows.append(row)
+                clr_hits.append(row)
                 
-                    # Check if the loaded image is a DLL
-                    dll_name = os.path.basename(row["ImageLoaded"]).split("\\")[-1].lower()
-                    
-                    # If a target DLL is provided, check if it matches the loaded DLL
-                    if target_dll and target_dll.lower() == dll_name:
-                        print_sysmon_event(row)
-                        spotted_rows.append(row)
-                        clr_hits.append(row)
-                        
-                        # Check if the event time is greater than the previous time frame
-                        event_time = row['DateTime']
-                        
-                        # Initialize time_frame if it's the first iteration
-                        if earliest_event_time is None or event_time < earliest_event_time:
-                            earliest_event_time = event_time
-                    
-                    # If no target DLL is provided, check if the loaded DLL is in the clr_dlls array
-                    elif not target_dll and dll_name in clr_dlls:
-                        print_sysmon_event(row)
-                        spotted_rows.append(row)
-                        clr_hits.append(row)
-
-                        # Check if the event time is greater than the previous time frame
-                        event_time = row['DateTime']
-
-                        # Initialize time_frame if it's the first iteration
-                        if earliest_event_time is None or event_time < earliest_event_time:
-                            earliest_event_time = event_time
-        
+                # Check if the event time is greater than the previous time frame
+                event_time = row['DateTime']
+                
+                # Initialize time_frame if it's the first iteration
+                if earliest_event_time is None or event_time < earliest_event_time:
+                    earliest_event_time = event_time
             
-             # Event ID 10 (ProcessAccess) or event ID 8 (CreateRemoteThread)
-            # TODO: Uncomment and implement process access and create remote thread detection logic
-            # [ ]  ProcessAccess logic
-            # [ ]  CreateRemoteThread logic
-            elif event_id == '10' or event_id == '8': 
-                injection_suspects.append(row)
+            # If no target DLL is provided, check if the loaded DLL is in the clr_dlls array
+            elif not target_dll and dll_name in clr_dlls:
+                print_sysmon_event(row)
+                spotted_rows.append(row)
+                clr_hits.append(row)
 
+                # Check if the event time is greater than the previous time frame
+                event_time = row['DateTime']
 
-        except KeyError:
-            print("KeyError: 'ImageLoaded' not found in row data.")
-            continue
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            continue
+                # Initialize time_frame if it's the first iteration
+                if earliest_event_time is None or event_time < earliest_event_time:
+                    earliest_event_time = event_time
+
+        # ----------------- Event ID 10: ProcessAccess (often used in process injection); Event ID 8: CreateRemoteThread (also used in injection)
+        elif event_id == '10' or event_id == '8':
+            injection_suspects.append(row)
+
+        # ----------------- Optional: Event ID 3 - Network activity after payload runs
+        elif event_id == '3':
+            network_alerts.append(row)
+
+    len_of_rows = len(spotted_rows)
+    filtered_events = []
+    if len_of_rows != 0:
+        print("\n\033[31m[!] CLR-based dll detected. Fetch suspicious events starting from the earliest detection time? (Y/N)\033[0m")
+
+        while True:
+            user_input = input("Enter your choice: ").strip().lower()
+            if user_input in ['y', 'n']:
+                break 
+            print("\033[31m[-] Invalid input. Please enter 'Y' or 'N'.\033[0m")
+
+        if user_input == 'y':
+            # Filter the events based on the earliest event time
+            filtered_events = conf.get_events_filtered_by_time(data_rows, earliest_event_time)
+                    
+            # Print the filtered events
+            for event in filtered_events:
+                print_sysmon_event(event)
+
+                event_id = event.get("EventID", "")
+                image = event.get("Image", "")
+                source_image = event.get("SourceImage", "")
+                target_image = event.get("TargetImage", "")
+                dest_port = event.get("DestinationPort", "")
+                dest_ip = event.get("DestinationIp", "")
+
+                # Additional filtering for more targeted detection
+                if event_id == '10' or event_id == '8':
+                    if conf.is_lolbin(source_image, lolbins) or conf.is_lolbin(target_image, lolbins):
+                        if event_id == '10':
+                            print("\033[31m[!] Potential process injection: A process was accessed. \033[0m")
+                        elif event_id == '8':
+                            print("\033[31m[!] Potential injection: A remote thread was created. \033[0m")
+                        
+                        print_sysmon_event(event)
+                        spotted_rows.append(event)
+                
+                elif event_id == '3':
+                    if conf.is_lolbin(image, lolbins) and dest_port == "443":
+                        print("\033[31m[!] LOLBin made outbound HTTPS connection to socket: \033[0m", 
+                            f"{dest_ip}:{dest_port}. Event details:")
+                        print_sysmon_event(event)
+                        spotted_rows.append(event)
+        
+        else:
+            print("\033[31m[-] No events filtered.\033[0m")
     
-    print("\033[31m[!] CLR-based dll detected. Fetch events starting from the earliest detection time? (Y/N)\033[0m")
+    len_of_filtered_events = len(filtered_events)
+    len_of_data_rows = len(data_rows)
+    if len_of_filtered_events > 0:
+        print("\n\n\033[32m[+] Analysis complete\033[0m\n",
+              "Summary:\n",
+                f"{len_of_filtered_events} events were filtered\n",
+                f"of a total of {len_of_data_rows} events.\n",  
+                f"CLR-related hits: {len(clr_hits)} | Injection events: {len(injection_suspects)} | HTTPS connections: {len(network_alerts)}",
+                "\nWould you like to save the matched results to a CSV file? (Y/N)")
+    
+    else:
+        print("\n\n\033[32m[+] Analysis complete\033[0m\n", 
+              "Summary:\n",
+                f"{len_of_rows} events detected.\n",  
+                f"CLR-related hits: {len(clr_hits)} | Injection events: {len(injection_suspects)} | HTTPS connections: {len(network_alerts)}",
+                "\nWould you like to save the matched results to a CSV file? (Y/N)")
+
     while True:
         user_input = input("Enter your choice: ").strip().lower()
         if user_input in ['y', 'n']:
             break 
         print("\033[31m[-] Invalid input. Please enter 'Y' or 'N'.\033[0m")
-
-    if user_input == 'y':
-        # Filter the events based on the earliest event time
-        filtered_events = conf.get_events_filtered_by_time(spotted_rows, earliest_event_time)
         
-        # Print the filtered events
-        for event in filtered_events:
-            if event["EventID"] == '10' or event["EventID"] == '8':
-                if conf.is_lolbin(event["SourceImage"], lolbins) or conf.is_lolbin(event["TargetImage"], lolbins):
-                    print_sysmon_event(event)
-                    spotted_rows.append(event)
-            
-            elif event["EventID"] == '3':
-                if conf.is_lolbin(event["Image"], lolbins) and event["DestinationPort"] == "443":
-                    print("\033[31m[!] LOLBin made outbound HTTPS connection to: \033[0m", 
-                          f"{event['DestinationIp']}:{event['DestinationPort']} (Event ID 3):")
-                    print_sysmon_event(event)
-                    spotted_rows.append(event)
-
-        print("\033[32m[+] Filtered events based on the earliest detection time:\033[0m")
-    
-    else:
-        print("\033[31m[-] No events filtered.\033[0m")
-    
-    print("\033[32m[+] Analysis complete\033[0m", 
-          "\nWould you like to save the matched results to a CSV file? (Y/N)\n")
-    user_input = input("Enter your choice: ").strip().lower()
-    
     if user_input == 'y' and evtx_path:
-        # Save the results to a CSV file
+        # Save the results to a CSV file for further analysis or record-keeping
         sysmon_evtx_to_csv(spotted_rows, evtx_path)
+        sysmon_evtx_to_csv(filtered_events, evtx_path)
         
     else:
         print("\033[31m[-] Results not saved.\033[0m")

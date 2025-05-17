@@ -9,25 +9,34 @@ from pprint import pprint
 # This function is called when a potential malicious activity is detected
 def print_sysmon_event(event):
     print("\033[36m\n[+] Summary of the activity\033[0m")
+
+    event_id = event.get("EventID", "")
+    image = event.get("Image", "")
+    source_image = event.get("SourceImage", "")
+    target_image = event.get("TargetImage", "")
+    utc_time = event.get("UtcTime", "")
     
     # Case of Unmanaged Powershell attacks
-    if event['Image'] == "" or event['EventID'] == '8' or event['EventID'] == '10':
-        print(f"Injector process: {event['SourceImage']}" + "\n",
-              f"Injected process: {event['TargetImage']}" + "\n", 
-              f"Event Time: {event['UtcTime']}" + "\n")
+    if image == "" or event_id == '8' or event_id == '10':
+        print(f"Injector process: {source_image}" + "\n",
+              f"Injected process: {target_image}" + "\n", 
+              f"Event Time: {utc_time}" + "\n")
     
     else:
-        print(f"Initiator process: {event['Image']}" + "\n",
-          f"Event Time: {event['UtcTime']}" + "\n")
+        print(f"Initiator process: {image}" + "\n",
+          f"Event Time: {utc_time}" + "\n")
     
     pprint(event)
 
 def print_security_event(event):
 
-    print("\033[36m\n[+] Summary of the activity\033[0m")
-    print(f"Process name: {event['ProcessName']}" + "\n",
-          f"Event Time: {event['TimeCreated']}" + "\n")
-    
+    process_name = event.get("ProcessName", "")
+    time_created = event.get("TimeCreated", "")
+
+    if process_name != "" and time_created != "":
+        print("\033[36m\n[+] Summary of the activity\033[0m")
+        print(f"Process name: {event['ProcessName']}" + "\n",
+            f"Event Time: {event['TimeCreated']}" + "\n")
     pprint(event)
 
 #BUG: circular import (scanners.py)

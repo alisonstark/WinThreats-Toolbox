@@ -28,6 +28,9 @@ security_event_data_fields = [
 
 def sysmon_evtx_parser(evtx_path):
 
+    # BUG: Creates 'CreateKey' somewhere in this logic when it finds no value/key
+    # SUSPICION: It may be that "name" in properties[] is a match but for a specific event this property name does not exist 
+
     all_rows = []
     properties = []
 
@@ -117,7 +120,7 @@ def security_evtx_parser(evtx_path):
                 properties.append("DateTime")
                 for data in root.findall(".//ns0:Data", ns):
                     if data.text != "":
-                        name = data.attrib.get("Name")                    
+                        name = data.attrib.get("Name")          
                         properties.append(name)
 
                 row_dict = {}  # default empty values
