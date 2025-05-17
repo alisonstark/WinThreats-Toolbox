@@ -63,7 +63,7 @@ def show_menu():
 # Filter the events based on the earliest event time
 # [x] Make this func so that it only filters events and stores them to a list or set
 # [x] Call event printing function (separation of responsibilities)
-def filter_events_by_time(data_rows, starting_time, user_minutes=None):
+def filter_events_by_time(data_rows, starting_time, user_minutes):
     if not data_rows:
         print("\033[31m[-] No data rows available.\033[0m")
         return []
@@ -72,30 +72,15 @@ def filter_events_by_time(data_rows, starting_time, user_minutes=None):
         filtered_events = []
         event_count = 0
         max_events = 20
-        
-        # Filter events based on the earliest event time
-        while True:
-            user_input = input("Enter the time frame in minutes (or press Enter to skip): ").strip()
 
-            if user_input == "":
-                user_minutes = 0
-                break
-
-            try:
-                user_minutes = int(user_input)
-                if user_minutes < 0:
-                    print("\033[31m[-] Invalid time frame. Please enter a positive number.\033[0m")
-                else:
-                    break
-            except ValueError:
-                print("\033[31m[-] Invalid input. Please enter a valid number or press Enter to skip.\033[0m")
-
+        if user_minutes is None:
+            user_minutes = 0
         # Filter events within the specified time frame
         time_threshold = starting_time + timedelta(minutes=user_minutes)
         
         # Populate the filtered events list
         for row in data_rows: 
-            time_created = row.get('TimeCreated', "")
+            time_created = row.get('DateTime', "")
 
             # Check if the event is within the specified time frame
             if time_threshold != starting_time and starting_time <= time_created <= time_threshold:
@@ -129,16 +114,22 @@ def filter_events_by_time(data_rows, starting_time, user_minutes=None):
     return filtered_events
 
 def get_evtx_path():
-    evtx_path = input("Enter the full path to the .evtx file: ")
-    
-    if not evtx_path:
-        print("\033[31m[-] No path provided. Exiting.\033[0m")
-        exit(1)
-    elif not evtx_path.endswith(".evtx"):
-        print("\033[31m[-] Invalid file type. Please provide a .evtx file.\033[0m")
-        exit(1)
-    else:
-        print(f"[+] File successfully loaded: {evtx_path}")
+    print("Enter the full path to the .evtx file: ")
+
+    while True:
+        evtx_path = input()
+
+        if not evtx_path:
+            print("\033[31m[-] No path provided. Please provide a path.\033[0m")
+            continue
+
+        elif not evtx_path.endswith(".evtx"):
+            print("\033[31m[-] Invalid file type. Please provide a .evtx file.\033[0m")
+            continue
+        
+        else:
+            print("[+] File successfully loaded")
+            break
     
     return evtx_path
 
@@ -193,6 +184,34 @@ def is_lolbin(image_path, lolbins):
     binary = os.path.basename(image_path).split("\\")[-1].lower()
     return bool(binary and lolbins and binary in lolbins)
 
+
+def get_events_filtered_by_time(events, starting_time):
+    user_minutes = None
+    while True:
+        # Filter the events based on the earliest event time
+        try:
+            time_input = input("Enter the time frame in minutes (leave blank to display all events): ").strip().lower()
+            if time_input != "":
+                user_minutes = int(time_input)
+
+                if user_minutes < 0:
+                    print("\033[31m[-] Invalid time frame. Please enter a positive number.\033[0m")
+                    continue
+                else:
+                    break
+            else:
+                break
+        except ValueError:
+            print("\033[31m[-] Invalid input. Please enter a valid number.\033[0m")
+            continue
+        except Exception as e:
+            print(f"An error occurred in `get_events_filtered_by_time()`: {e}")
+            continue
+
+    # Return filtered events
+    return filter_events_by_time(events, starting_time, user_minutes)
+
+  
 
 
 

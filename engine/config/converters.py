@@ -29,6 +29,7 @@ security_event_data_fields = [
 def sysmon_evtx_parser(evtx_path):
 
     all_rows = []
+    properties = []
 
     with Evtx(str(evtx_path)) as log:
         for record in log.records():
@@ -41,22 +42,26 @@ def sysmon_evtx_parser(evtx_path):
                 # Namespace-aware parsing
                 ns = {"ns0": "http://schemas.microsoft.com/win/2004/08/events/event"}
 
-                row_dict = {key: "" for key in sysmon_event_data_fields}  # default empty values
-
+                properties.append("EventID")
+                properties.append("DateTime")
+                for data in root.findall(".//ns0:Data", ns):
+                    if data.text != "":
+                        name = data.attrib.get("Name")                    
+                        properties.append(name)
+            
                 # ACTUAL xml format: <ns0:EventID Qualifiers="">10</ns0:EventID>
                 # Extract using namespace
+                row_dict = {}
                 event_id_elem = root.find(".//ns0:EventID", ns)
                 if event_id_elem is not None and event_id_elem.text:
                     row_dict["EventID"] = event_id_elem.text
 
                 # ACTUAL xml format: <ns0:EventData><ns0:Data Name="RuleName">-</ns0:Data>
                 # Extract using namespace
-                for data in root.findall(".//ns0:Data", ns): # DEBUG
-                    
+                for data in root.findall(".//ns0:Data", ns): # DEBUG           
                     name = data.attrib.get("Name")
-                    value = data.text or ""
-                    # print(name + "##########" + value) # DEBUG data names from sysmon_event_data_fields and their value
-
+                    value = data.text
+                    
                     if name == "UtcTime":
                         try:
                             # Try with T and Z (ideal ISO format)
@@ -68,13 +73,12 @@ def sysmon_evtx_parser(evtx_path):
                             except ValueError:
                                 print(f"[-] Failed to parse UtcTime: {value}")
                                 continue
-
+                        
                         # local_time = utc_time.strftime("%Y-%m-%d %H:%M:%S.%f")
-                        row_dict['TimeCreated'] = utc_time # Not local_time
+                        row_dict['DateTime'] = utc_time # Not local_time
                     
-                    elif name in row_dict:
+                    if name in properties:
                         row_dict[name] = value
-
 
                 all_rows.append(row_dict)
 
@@ -97,6 +101,7 @@ def sysmon_evtx_to_csv(data_rows, evtx_path):
 
 def security_evtx_parser(evtx_path):
     all_rows = []
+    properties = []
 
     with Evtx(str(evtx_path)) as log:
         for record in log.records():
@@ -108,7 +113,14 @@ def security_evtx_parser(evtx_path):
                 # Namespace-aware parsing
                 ns = {"ns0": "http://schemas.microsoft.com/win/2004/08/events/event"}
 
-                row_dict = {key: "" for key in security_event_data_fields}  # default empty values
+                properties.append("EventID")
+                properties.append("DateTime")
+                for data in root.findall(".//ns0:Data", ns):
+                    if data.text != "":
+                        name = data.attrib.get("Name")                    
+                        properties.append(name)
+
+                row_dict = {}  # default empty values
 
                 # Extract using namespace
                 event_id_elem = root.find(".//ns0:EventID", ns)
@@ -121,7 +133,7 @@ def security_evtx_parser(evtx_path):
                     try:
                         # Parse to datetime object
                         utc_time = datetime.strptime(time_created_elem.attrib.get("SystemTime"), "%Y-%m-%dT%H:%M:%S.%fZ")
-                        row_dict['TimeCreated'] = utc_time
+                        row_dict['DateTime'] = utc_time
                     except ValueError:
                         print(f"[-] Failed to parse SystemTime: {time_created_elem.attrib.get('SystemTime')}")
 
@@ -130,9 +142,8 @@ def security_evtx_parser(evtx_path):
                     
                     name = data.attrib.get("Name")
                     value = data.text or ""
-                    # print(name + "##########" + value) # DEBUG data names from sysmon_event_data_fields and their value
 
-                    if name in row_dict:
+                    if name in properties:
                         row_dict[name] = value
 
                 all_rows.append(row_dict)

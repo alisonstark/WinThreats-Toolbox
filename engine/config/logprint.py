@@ -14,11 +14,11 @@ def print_sysmon_event(event):
     if event['Image'] == "" or event['EventID'] == '8' or event['EventID'] == '10':
         print(f"Injector process: {event['SourceImage']}" + "\n",
               f"Injected process: {event['TargetImage']}" + "\n", 
-              f"Event Time: {event['TimeCreated']}" + "\n")
+              f"Event Time: {event['UtcTime']}" + "\n")
     
     else:
         print(f"Initiator process: {event['Image']}" + "\n",
-          f"Event Time: {event['TimeCreated']}" + "\n")
+          f"Event Time: {event['UtcTime']}" + "\n")
     
     pprint(event)
 
