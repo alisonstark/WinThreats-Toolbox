@@ -3,3 +3,7 @@ EVE/.gitignore
 EVE/engine/__pycache__/
 EVE/engine/config/__pycache__/
 EVE/engine/src/__pycache__/
+engine/config/__pycache__/converters.cpython-312.pyc
+engine/config/__pycache__/logprint.cpython-312.pyc
+engine/config/__pycache__/utils.cpython-312.pyc
+engine/src/__pycache__/scanners.cpython-312.pyc
