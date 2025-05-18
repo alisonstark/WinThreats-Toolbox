@@ -5,7 +5,7 @@
 # ===============================
 
 import os
-from config.converters import security_evtx_parser, sysmon_evtx_to_csv
+from config.converters import security_evtx_parser, evtx_to_csv
 import config.utils as conf
 from config.logprint import print_sysmon_event, print_security_event
 
@@ -62,6 +62,7 @@ def detect_DLLHijack(data_rows, evtx_path=None, target_dll=None):
     # Display all other types of events starting from the earliest possible DLL hijacking time
     # User can choose to capture all events within a fixed time window
     len_of_rows = len(spotted_rows)
+    filtered_events = []
     if len_of_rows != 0:
         print(f"\n\033[31m[!]{len_of_rows} potential DLL Hijacking events were detected.\033[0m")
         print("Fetch all events starting from the earliest detection time? (Y/N)")
@@ -81,19 +82,19 @@ def detect_DLLHijack(data_rows, evtx_path=None, target_dll=None):
             print("\033[31m[-] No additional events filtered.\033[0m")
     
     else:
-        print("\033[31m[-] No DLL Hijacking events detected.\033[0m")
-        print("\033[31m[-] No events filtered.\033[0m")
+        print("\033[1;31m[-] No DLL Hijacking events detected.\033[0m")
+        print("\033[1;31m[-] No events filtered.\033[0m")
         return
     
     len_of_filtered_events = len(filtered_events)
     if len_of_filtered_events > 0:
-        print("\n\n\033[32m[+] Analysis complete\033[0m\n", 
+        print("\n\n\033[1;32m[+] Analysis complete\033[0m\n", 
               f"{len_of_filtered_events} events were filtered\n",
               f"of a total of {len_of_rows} events.\n",
               "\nWould you like to save the matched results to a CSV file? (Y/N)")
     
     elif len_of_filtered_events == 0:
-        print("\n\n\033[32m[+] Analysis complete\033[0m\n", 
+        print("\n\n\033[1;32m[+] Analysis complete\033[0m\n", 
               f"{len_of_rows} events detected.\n",
               "\nWould you like to save the matched results to a CSV file? (Y/N)")
 
@@ -105,13 +106,13 @@ def detect_DLLHijack(data_rows, evtx_path=None, target_dll=None):
         
     if user_input == 'y' and evtx_path:
         # Save the results to a CSV file for further analysis or record-keeping
-        sysmon_evtx_to_csv(spotted_rows, evtx_path)
-        sysmon_evtx_to_csv(filtered_events, evtx_path)
+        evtx_to_csv(spotted_rows, evtx_path)
+        evtx_to_csv(filtered_events, evtx_path)
     
     else:
-        print("\033[31m[-] Results not saved.\033[0m")
+        print("\033[1;31m[-] Results not saved.\033[0m")
     
-    print("\n\n")
+    print("\n")
 
 def detect_UnmanagedPowerShell(data_rows, evtx_path=None, target_dll=None):
 
@@ -196,7 +197,7 @@ def detect_UnmanagedPowerShell(data_rows, evtx_path=None, target_dll=None):
 
                 # Additional filtering for more targeted detection
                 if event_id == '10' or event_id == '8':
-                    if conf.is_lolbin(source_image, lolbins) or conf.is_lolbin(target_image, lolbins):
+                    if conf.is_lolbin(source_image) or conf.is_lolbin(target_image):
                         if event_id == '10':
                             print("\033[31m[!] Potential process injection: A process was accessed. \033[0m")
                         elif event_id == '8':
@@ -206,19 +207,20 @@ def detect_UnmanagedPowerShell(data_rows, evtx_path=None, target_dll=None):
                         spotted_rows.append(event)
                 
                 elif event_id == '3':
-                    if conf.is_lolbin(image, lolbins) and dest_port == "443":
-                        print("\033[31m[!] LOLBin made outbound HTTPS connection to socket: \033[0m", 
+                    if conf.is_lolbin(image) and dest_port == "443":
+                        print("\n\033[31m[!] LOLBin made outbound HTTPS connection to socket: \033[0m", 
                             f"{dest_ip}:{dest_port}. Event details:")
                         print_sysmon_event(event)
                         spotted_rows.append(event)
         
         else:
-            print("\033[31m[-] No events filtered.\033[0m")
+            print("\033[1;31m[-] No unmanaged Powershell executed.\033[0m")
+            print("\033[1;31m[-] No events filtered.\033[0m")
     
     len_of_filtered_events = len(filtered_events)
     len_of_data_rows = len(data_rows)
     if len_of_filtered_events > 0:
-        print("\n\n\033[32m[+] Analysis complete\033[0m\n",
+        print("\n\n\033[1;32m[+] Analysis complete\033[0m\n",
               "Summary:\n",
                 f"{len_of_filtered_events} events were filtered\n",
                 f"of a total of {len_of_data_rows} events.\n",  
@@ -226,60 +228,60 @@ def detect_UnmanagedPowerShell(data_rows, evtx_path=None, target_dll=None):
                 "\nWould you like to save the matched results to a CSV file? (Y/N)")
     
     else:
-        print("\n\n\033[32m[+] Analysis complete\033[0m\n", 
+        print("\n\n\033[1;32m[+] Analysis complete\033[0m\n", 
               "Summary:\n",
                 f"{len_of_rows} events detected.\n",  
-                f"CLR-related hits: {len(clr_hits)} | Injection events: {len(injection_suspects)} | HTTPS connections: {len(network_alerts)}",
+                f"CLR-related hits: {len(clr_hits)} | Injection events: {len(injection_suspects)} | HTTPS connections: {len(network_alerts)}\n\n",
                 "\nWould you like to save the matched results to a CSV file? (Y/N)")
 
     while True:
         user_input = input("Enter your choice: ").strip().lower()
         if user_input in ['y', 'n']:
             break 
-        print("\033[31m[-] Invalid input. Please enter 'Y' or 'N'.\033[0m")
+        print("\033[1;31m[-] Invalid input. Please enter 'Y' or 'N'.\033[0m")
         
     if user_input == 'y' and evtx_path:
         # Save the results to a CSV file for further analysis or record-keeping
-        sysmon_evtx_to_csv(spotted_rows, evtx_path)
-        sysmon_evtx_to_csv(filtered_events, evtx_path)
+        evtx_to_csv(spotted_rows, evtx_path)
+        evtx_to_csv(filtered_events, evtx_path)
         
     else:
-        print("\033[31m[-] Results not saved.\033[0m")
-    print("\n\n")
+        print("\033[1;31m[-] Results not saved.\033[0m")
+    print("\n")
 
 def detect_LsassDump(data_rows, evtx_path=None, placeholder=None):
 
     spotted_rows = []
+    security_events = []
     earliest_dump_time = None
 
     for row in data_rows:
-        try:
-            event_id = row["EventID"]
-            if event_id == '10':
-                # Check if the process name is "lsass.exe", the granted access is "0x1fffff"
-                # and the source user is different from the target user
-                if (row["TargetImage"].lower().endswith("lsass.exe") and
-                    row["GrantedAccess"].lower() == "0x001fffff" and
-                    row["SourceUser"].split("\\")[-1].lower() != row["TargetUser"].split("\\")[-1].lower()):
+        event_id = row.get("EventID", "")
+        target_image = row.get("TargetImage", "")
+        granted_access = row.get("GrantedAccess", "")
+        source_user = row.get("SourceUser", "")
+        target_user = row.get("TargetUser", "")
 
-                     # Check if the event time is greater than the previous time frame
-                    dump_time = row['DateTime']
+        if event_id == '10':
+            # Check if the process name is "lsass.exe", the granted access is "0x1fffff"
+            # and the source user is different from the target user
+            if (target_image.lower().endswith("lsass.exe") and
+                granted_access.lower() == "0x001fffff" and
+                source_user.split("\\")[-1].lower() != target_user.split("\\")[-1].lower()):
 
-                    # Initialize time_frame if it's the first iteration
-                    if earliest_dump_time is None or dump_time < earliest_dump_time:
-                        earliest_dump_time = dump_time
-                    
-                    print_sysmon_event(row)
-                    spotted_rows.append(row)
+                # Check if the event time is greater than the previous time frame
+                dump_time = row['DateTime']
 
-        except KeyError:
-            print("KeyError: 'SourceImage' not found in row data.")
-            continue
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            continue
-    
-    if earliest_dump_time and placeholder is None:
+                # Initialize time_frame if it's the first iteration
+                if earliest_dump_time is None or dump_time < earliest_dump_time:
+                    earliest_dump_time = dump_time
+                
+                print_sysmon_event(row)
+                spotted_rows.append(row)
+
+    len_spotted_rows = len(spotted_rows)
+    filtered_events = []
+    if len_spotted_rows != 0 and placeholder is None: #TODO: Check whether "placeholder is None" is really necessary
         print("\033[31m\n[!] Lsass dump detected. Fetch events starting from the earliest detection time? (Y/N)\033[0m\n")
         
         while True:
@@ -288,30 +290,47 @@ def detect_LsassDump(data_rows, evtx_path=None, placeholder=None):
                 break 
             print("\033[31m[-] Invalid input. Please enter 'Y' or 'N'.\033[0m")
         
+        security_logs_path = ""
         if user_input == 'y':
 
             print("You need to provide the path to the Security Logs .evtx file.")
             security_logs_path = conf.get_evtx_path()
-
             security_logs_rows = security_evtx_parser(security_logs_path)
-            # print(security_logs_rows) DEBUG
 
-            filtered_events = conf.get_events_filtered_by_time(security_logs_rows, earliest_dump_time)
-            
+            filtered_events = conf.get_events_filtered_by_time(security_logs_rows, earliest_dump_time)      
             for security_event in filtered_events:
                 print_security_event(security_event)
+                security_events.append(security_event)
 
         else:
             print("\033[31m[-] No events filtered.\033[0m")
     
-    print("\033[32m[+] Analysis complete\033[0m", 
-          "\nWould you like to save the matched results to a CSV file? (Y/N)\n")
+    len_of_security_events = len(filtered_events)
+    len_of_spotted_rows = len(spotted_rows)
+    len_of_datarows = len(data_rows)
+    if len_of_security_events > 0:
+        print("\n\n\033[1;32m[+] Analysis complete\033[0m\n", 
+              f"{len_of_spotted_rows} suspicious events were detected\n",
+              f"of a total of {len_of_datarows} events.\n",
+              10*"-" + "\n",
+              f"{len_of_security_events} security events were additionally filtered\n",
+              f"of a total of {len(security_logs_rows)} security events.\n",
+              "\nWould you like to save the matched results to a CSV file? (Y/N)")
+    
+    elif len_of_security_events == 0:
+        print("\n\n\033[1;32m[+] Analysis complete\033[0m\n", 
+              f"{len_of_spotted_rows} suspicious events were detected",
+              f"of a total of {len_of_datarows} events.",
+              "\nWould you like to save the matched results to a CSV file? (Y/N)")
+
     user_input = input("Enter your choice: ").strip().lower()
     
     if user_input == 'y' and evtx_path:
         # Save the results to a CSV file
-        sysmon_evtx_to_csv(spotted_rows, evtx_path)
+        evtx_to_csv(spotted_rows, evtx_path)
+        if(len(security_logs_rows) != 0):
+            evtx_path(security_logs_rows, evtx_path)
         
     else:
-        print("\033[31m[-] Results not saved.\033[0m")
-    print("\n\n")
+        print("\033[1;31m[-] Results not saved.\033[0m")
+    print("\n")

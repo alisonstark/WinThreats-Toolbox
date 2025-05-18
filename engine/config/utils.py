@@ -31,6 +31,7 @@ def show_menu():
                         target_dll = target_dll.strip().lower()
                     
                     # If the user provides a DLL name, return it along with the choice
+                    print("\n")
                     return choice, target_dll if target_dll else None
 
                 elif choice == 2:
@@ -44,10 +45,12 @@ def show_menu():
                         target_dll = target_dll.strip().lower()
                     
                     # If the user provides a DLL name, return it along with the choice
+                    print("\n")
                     return choice, target_dll if target_dll else None
                 
                 # If the user selects options 2 or 3, return the choice and None for target_dll
                 else:
+                    print("\n")
                     return choice, None
                    
             else:
@@ -103,7 +106,7 @@ def filter_events_by_time(data_rows, starting_time, user_minutes):
                             event_count = 0
                             continue
 
-        print("\033[32m[+] Filtered events based on the earliest detection time\033[0m")
+        print("\n\033[32m[+] Filtered events based on the earliest detection time\033[0m\n")
         
     else:
         print("\033[31m[-] No events filtered.\033[0m")
@@ -176,11 +179,11 @@ def get_lolbins():
     return sorted_lolbins
 
 # Check if the image path is a LOLBin
-def is_lolbin(image_path, lolbins):
+def is_lolbin(image_path):
     if not image_path:
         return False
     binary = os.path.basename(image_path).split("\\")[-1].lower()
-    return bool(binary and lolbins and binary in lolbins)
+    return bool(binary and get_lolbins() and binary in get_lolbins())
 
 
 def get_events_filtered_by_time(events, starting_time):

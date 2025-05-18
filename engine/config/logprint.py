@@ -8,7 +8,7 @@ from pprint import pprint
 # Function to print the event details
 # This function is called when a potential malicious activity is detected
 def print_sysmon_event(event):
-    print("\033[36m\n[+] Summary of the activity\033[0m")
+    print("\033[1;36m[+] Summary of the activity\033[0m")
 
     event_id = event.get("EventID", "")
     image = event.get("Image", "")
@@ -27,6 +27,7 @@ def print_sysmon_event(event):
           f"Event Time: {utc_time}" + "\n")
     
     pprint(event)
+    print("\n")
 
 def print_security_event(event):
 
@@ -34,10 +35,11 @@ def print_security_event(event):
     time_created = event.get("TimeCreated", "")
 
     if process_name != "" and time_created != "":
-        print("\033[36m\n[+] Summary of the activity\033[0m")
+        print("\033[1;36m\n[+] Summary of the activity\033[0m")
         print(f"Process name: {event['ProcessName']}" + "\n",
             f"Event Time: {event['TimeCreated']}" + "\n")
     pprint(event)
+    print("\n")
 
 #BUG: circular import (scanners.py)
 #def display_suspicious_events(events, placeholder1=None, placeholder2=None):

@@ -9,23 +9,6 @@ import csv
 
 import xml.etree.ElementTree as ET
 
-sysmon_event_data_fields = [
-    "EventID", "RuleName", "TimeCreated", "ProcessGuid", "ProcessId", "Image", "ImageLoaded",
-    "Hashes", "Signed", "Signature", "SignatureStatus", "SourceProcessGuid", "SourceProcessId",
-    "SourceImage", "TargetProcessGuid", "TargetProcessId", "TargetImage", "GrantedAccess", "CallTrace",
-    "User", "SourceUser", "TargetUser", "LogonGuid", "LogonId", "TerminalSessionId", "IntegrityLevel", 
-    "ParentUser", "SourceIp", "SourceHostname", "SourcePort", "DestinationIp", "DestinationHostname", 
-    "DestinationPort", "Protocol"
-]
-
-security_event_data_fields = [
-    "EventID", "TimeCreated", "SubjectUserSid", "SubjectUserName", "SubjectDomainName", "SubjectLogonId",
-    "NewProcessId", "NewProcessName", "ProcessId", "ProcessName", "ParentProcessName", "CreatorProcessId",
-    "TokenElevationType", "ObjectServer", "ObjectType", "ObjectName", "HandleId", "AccessMask", "AccessReasons",
-    "Privileges", "PrivilegeList", "OperationType", "AuditPolicyChanges", "TargetUserSid", "TargetUserName",
-    "TargetDomainName", "TargetLogonId", "CallTrace",
-]
-
 def sysmon_evtx_parser(evtx_path):
 
     # BUG: Creates 'CreateKey' somewhere in this logic when it finds no value/key
@@ -94,14 +77,6 @@ def sysmon_evtx_parser(evtx_path):
 
     return all_rows
 
-def sysmon_evtx_to_csv(data_rows, evtx_path):
-    csv_path = evtx_path.replace(".evtx", ".csv")
-    with open(csv_path, mode='w', newline='', encoding='utf-8') as f:
-            writer = csv.DictWriter(f, fieldnames=sysmon_event_data_fields)
-            writer.writeheader()
-            writer.writerows(data_rows)
-    print("\033[32m[+] Results saved to CSV file:\033[0m " + csv_path)
-
 def security_evtx_parser(evtx_path):
     all_rows = []
     properties = []
@@ -133,12 +108,18 @@ def security_evtx_parser(evtx_path):
                 # ACTUAL xml format: <ns0:TimeCreated SystemTime="2025-04-28T12:34:56.789Z"/>
                 time_created_elem = root.find(".//ns0:TimeCreated", ns)
                 if time_created_elem is not None and time_created_elem.attrib.get("SystemTime"):
+                    time_str = time_created_elem.attrib.get("SystemTime")
                     try:
-                        # Parse to datetime object
-                        utc_time = datetime.strptime(time_created_elem.attrib.get("SystemTime"), "%Y-%m-%dT%H:%M:%S.%fZ")
-                        row_dict['DateTime'] = utc_time
+                        utc_time = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
                     except ValueError:
-                        print(f"[-] Failed to parse SystemTime: {time_created_elem.attrib.get('SystemTime')}")
+                        try:
+                            utc_time = datetime.strptime(time_str, "%Y-%m-%d %H:%M:%S.%f")
+                        except ValueError:
+                            print(f"[-] Failed to parse SystemTime: {time_str}")
+                            utc_time = None
+
+                    if utc_time:
+                        row_dict['DateTime'] = utc_time
 
                 # Extract using namespace
                 for data in root.findall(".//ns0:Data", ns): # DEBUG
@@ -156,3 +137,17 @@ def security_evtx_parser(evtx_path):
                 print(f"Record XML: {record.xml()}")
 
     return all_rows
+
+def evtx_to_csv(data_rows, evtx_path):
+    event_data_fields = set()
+    for row in data_rows:
+        event_data_fields.update(row.keys())
+
+    csv_path = evtx_path.replace(".evtx", ".csv")
+    with open(csv_path, mode='w', newline='', encoding='utf-8') as f:
+            # TODO: Convert sysmon_event_data_fields to a list and order it
+            fieldnames = sorted(list(event_data_fields))
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(data_rows)
+    print("\033[32m[+] Results saved to CSV file:\033[0m " + csv_path)
