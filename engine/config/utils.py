@@ -10,32 +10,19 @@ def show_menu():
     print("1) DLL Hijacking Detection")
     print("2) Unmanaged PowerShell Detection")
     print("3) Detect LSASS Dump")
+    print("4) Detect Strange PPID")
     # print("4) All of the above")
-    print("4) Exit")
-    print("=================================")
+    print("5) Exit")
+    print("=================================\n")
 
     target_dll = None
     # Loop until a valid choice is made
     while True:
         try:
-            choice = int(input("Select an option (1-4): "))
-            if choice in [1, 2, 3, 4]:
-                if choice == 1:
-                    print("\nProvide a specific DLL to check for hijacking (optional).")
-                    target_dll = input("Enter the DLL name (e.g., example.dll) or press Enter to skip: ")
-                    
-                    if target_dll and not target_dll.endswith(".dll"):
-                        target_dll = input("\033[31m[-] Invalid DLL name. Please include the .dll extension:\033[0m")
-
-                    elif target_dll:
-                        target_dll = target_dll.strip().lower()
-                    
-                    # If the user provides a DLL name, return it along with the choice
-                    print("\n")
-                    return choice, target_dll if target_dll else None
-
-                elif choice == 2:
-                    print("Provide a specific DLL to check for unmanaged powershell code execution (optional).")
+            choice = int(input("Select an option (1-5): "))
+            if choice in [1, 2, 3, 4, 5]:
+                if choice == 1 or choice == 2:
+                    print("\nProvide a specific DLL to help filter search (optional).")
                     target_dll = input("Enter the DLL name (e.g., example.dll) or press Enter to skip: ")
                     
                     if target_dll and not target_dll.endswith(".dll"):
@@ -60,7 +47,7 @@ def show_menu():
         
         # In case user enters a non-integer value
         except ValueError:
-            print("Invalid input. Please enter a number between 1 and 4.")
+            print("Invalid input. Please enter a number between 1 and 5.")
 
 # Function to display all events after a specific time
 # Filter the events based on the earliest event time

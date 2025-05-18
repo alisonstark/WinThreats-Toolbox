@@ -334,3 +334,63 @@ def detect_LsassDump(data_rows, evtx_path=None, placeholder=None):
     else:
         print("\033[1;31m[-] Results not saved.\033[0m")
     print("\n")
+
+
+def detect_strange_PPID(data_rows, evtx_path=None, target_dll=None):
+
+    spotted_rows = []
+    suspicious_pairs = [
+        ("werfault.exe", "cmd.exe"),
+        ("explorer.exe", "powershell.exe"),
+        ("winword.exe", "cmd.exe"),
+        ("excel.exe", "powershell.exe"),
+        ("outlook.exe", "cmd.exe"),
+        ("wscript.exe", "powershell.exe"),
+        ("mshta.exe", "powershell.exe"),
+        ("svchost.exe", "cmd.exe"),
+        ("services.exe", "cmd.exe"),
+        ("rundll32.exe", "powershell.exe"),
+        ("regsvr32.exe", "powershell.exe")
+    ]
+
+    earliest_event_time = None
+    for row in data_rows:
+        event_id = row.get("EventID", "")
+        image = row.get("Image", "").split("\\")[-1].lower()
+        parent_image = row.get("ParentImage", "").split("\\")[-1].lower()
+            
+        if event_id == '1' and image != "":          
+            
+            # Tuple is definied by (ParentImage, Image)
+            if (parent_image.lower(), image.lower()) in suspicious_pairs:
+                print_sysmon_event(row)
+                spotted_rows.append(row)
+
+                # Check if the event time is greater than the previous time frame
+                event_time = row['DateTime']
+
+                # Initialize time_frame if it's the first iteration
+                if earliest_event_time is None or event_time < earliest_event_time:
+                    earliest_event_time = event_time
+
+    len_of_rows = len(spotted_rows)
+    len_of_data_rows = len(data_rows)
+    print("\n\n\033[1;32m[+] Analysis complete\033[0m\n", 
+            "Summary:\n",
+            f"{len_of_rows} events detected.\n",
+            f"of a total of {len_of_data_rows} events."
+            "\nWould you like to save the matched results to a CSV file? (Y/N)")
+
+    while True:
+        user_input = input("Enter your choice: ").strip().lower()
+        if user_input in ['y', 'n']:
+            break 
+        print("\033[1;31m[-] Invalid input. Please enter 'Y' or 'N'.\033[0m")
+        
+    if user_input == 'y' and evtx_path:
+        # Save the results to a CSV file for further analysis or record-keeping
+        evtx_to_csv(spotted_rows, evtx_path)
+        
+    else:
+        print("\033[1;31m[-] Results not saved.\033[0m")
+    print("\n")
